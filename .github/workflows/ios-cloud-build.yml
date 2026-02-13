@@ -41,6 +41,7 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
+
       - name: Install CocoaPods dependencies
         run: |
           cd ios
