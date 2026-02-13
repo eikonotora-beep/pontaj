@@ -44,17 +44,17 @@ jobs:
 
       - name: Install CocoaPods dependencies
         run: |
-          cd ios
+          cd ios/App
           pod install
 
       - name: Build iOS app with Xcode
         run: |
-          cd ios
+          cd ios/App
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath ${{ github.workspace }}/Pontaj.xcarchive archive
 
       - name: Export IPA
         run: |
-          cd ios
+          cd ios/App
           xcodebuild -exportArchive -archivePath ${{ github.workspace }}/Pontaj.xcarchive -exportOptionsPlist ExportOptions.plist -exportPath ${{ github.workspace }}/output
 
       - name: Upload IPA artifact
