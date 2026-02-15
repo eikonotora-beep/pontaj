@@ -277,9 +277,13 @@ export const calculateMonthlySummary = (
         // Find next day
         const nextEntry = monthEntries[idx + 1];
         const nextDate = nextEntry ? new Date(nextEntry.date) : new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate() + 1);
-        const isCurrentHolidayOrWeekday = isWeekday(entryDate) || isRomanianHoliday(entryDate);
+        const isCurrentHolidayOrWeekend = isWeekend(entryDate) || isRomanianHoliday(entryDate);
         const isNextHolidayOrWeekend = isWeekend(nextDate) || isRomanianHoliday(nextDate);
-        if (isCurrentHolidayOrWeekday && !isNextHolidayOrWeekend) {
+        const isCurrentHolidayOrWeekday = isWeekday(entryDate) || isRomanianHoliday(entryDate);
+        // If night is on weekend/holiday and next day is also weekend/holiday, count actual hours
+        if (isCurrentHolidayOrWeekend && isNextHolidayOrWeekend) {
+          totalWeekend += shift.duration;
+        } else if (isCurrentHolidayOrWeekday && !isNextHolidayOrWeekend) {
           totalWeekend += 5 * 60 + 15; // 5:15 h
         } else if (!isCurrentHolidayOrWeekday && isNextHolidayOrWeekend) {
           totalWeekend += 7 * 60 + 15; // 7:15 h
