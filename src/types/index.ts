@@ -33,9 +33,17 @@ export interface ShiftConfig {
   defaultEnd: string;
 }
 
+
 export interface Calendar {
   id: string;
   name: string;
   createdAt: Date;
   entries: DayEntry[];
+}
+
+export interface Profile {
+  id: string;
+  name: string;
+  createdAt: Date;
+  calendars: Calendar[];
 }

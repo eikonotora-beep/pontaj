@@ -1,16 +1,85 @@
-import { DayEntry, MonthSummary, Calendar } from "../types/index";
-import {
-  isWeekday,
-  isWeekend,
-  roundToNearestMinute,
-} from "./dateUtils";
+import { DayEntry, MonthSummary, Calendar, Profile } from "../types/index";
+import { isWeekday, isWeekend, roundToNearestMinute, isRomanianHoliday } from "../utils/dateUtils";
+// ...existing code...
+// Profile and calendar storage keys
+export const PROFILES_STORAGE_KEY = "pontaj_profiles";
+export const ACTIVE_PROFILE_KEY = "pontaj_active_profile";
+export const ACTIVE_CALENDAR_KEY = "pontaj_active_calendar";
 
-const CALENDARS_STORAGE_KEY = "pontaj_calendars";
-const ACTIVE_CALENDAR_KEY = "pontaj_active_calendar";
+// Profile management
+export function getAllProfiles(): Profile[] {
+  const raw = localStorage.getItem(PROFILES_STORAGE_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
 
-// Calendar Management Functions
+export function saveProfiles(profiles: Profile[]): void {
+  localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+}
+
+export function getActiveProfileId(): string | null {
+  return localStorage.getItem(ACTIVE_PROFILE_KEY);
+}
+
+export function setActiveProfile(id: string): void {
+  localStorage.setItem(ACTIVE_PROFILE_KEY, id);
+}
+
+export function getProfileById(id: string): Profile | null {
+  const profiles = getAllProfiles();
+  return profiles.find((p) => p.id === id) || null;
+}
+
+export function createProfile(name: string): Profile {
+  const profiles = getAllProfiles();
+  const id = `profile_${Date.now()}`;
+  const profile: Profile = { id, name, calendars: [], createdAt: new Date() };
+  profiles.push(profile);
+  saveProfiles(profiles);
+  setActiveProfile(id);
+  return profile;
+}
+
+export function deleteProfile(id: string): void {
+  let profiles = getAllProfiles();
+  profiles = profiles.filter((p) => p.id !== id);
+  saveProfiles(profiles);
+  // If deleted profile was active, set another as active
+  const activeId = getActiveProfileId();
+  if (activeId === id && profiles.length > 0) {
+    setActiveProfile(profiles[0].id);
+  }
+}
+
+export function renameProfile(id: string, newName: string): void {
+  const profiles = getAllProfiles();
+  const idx = profiles.findIndex((p) => p.id === id);
+  if (idx >= 0) {
+    profiles[idx].name = newName;
+    saveProfiles(profiles);
+  }
+}
+
+// ...existing code after monthlyBreakdown loop...
+
+export const getActiveProfile = (): Profile | null => {
+  const id = getActiveProfileId();
+  if (!id) {
+    const profiles = getAllProfiles();
+    if (profiles.length === 0) {
+      return createProfile("Profile 1");
+    } else {
+      setActiveProfile(profiles[0].id);
+      return profiles[0];
+    }
+  }
+  return getProfileById(id) || null;
+};
+
+// Calendar Management (within active profile)
 
 export const createCalendar = (name: string): Calendar => {
+  const profile = getActiveProfile();
+  if (!profile) throw new Error("No active profile");
   const id = `calendar_${Date.now()}`;
   const calendar: Calendar = {
     id,
@@ -18,42 +87,55 @@ export const createCalendar = (name: string): Calendar => {
     createdAt: new Date(),
     entries: [],
   };
-  saveCalendar(calendar);
+  profile.calendars.push(calendar);
+  // Save updated profile
+  const profiles = getAllProfiles();
+  const idx = profiles.findIndex((p) => p.id === profile.id);
+  if (idx >= 0) profiles[idx] = profile;
+  saveProfiles(profiles);
   setActiveCalendar(id);
   return calendar;
 };
 
 export const getAllCalendars = (): Calendar[] => {
-  const data = localStorage.getItem(CALENDARS_STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
+  const profile = getActiveProfile();
+  return profile ? profile.calendars : [];
 };
 
 export const getCalendarById = (id: string): Calendar | undefined => {
-  const calendars = getAllCalendars();
-  return calendars.find((c) => c.id === id);
+  const profile = getActiveProfile();
+  return profile?.calendars.find((c) => c.id === id);
 };
 
 export const saveCalendar = (calendar: Calendar): void => {
-  const calendars = getAllCalendars();
-  const existingIndex = calendars.findIndex((c) => c.id === calendar.id);
-
-  if (existingIndex >= 0) {
-    calendars[existingIndex] = calendar;
+  const profile = getActiveProfile();
+  if (!profile) return;
+  const idx = profile.calendars.findIndex((c) => c.id === calendar.id);
+  if (idx >= 0) {
+    profile.calendars[idx] = calendar;
   } else {
-    calendars.push(calendar);
+    profile.calendars.push(calendar);
   }
-
-  localStorage.setItem(CALENDARS_STORAGE_KEY, JSON.stringify(calendars));
+  // Save updated profile
+  const profiles = getAllProfiles();
+  const pidx = profiles.findIndex((p) => p.id === profile.id);
+  if (pidx >= 0) profiles[pidx] = profile;
+  saveProfiles(profiles);
 };
 
 export const deleteCalendar = (id: string): void => {
-  const calendars = getAllCalendars().filter((c) => c.id !== id);
-  localStorage.setItem(CALENDARS_STORAGE_KEY, JSON.stringify(calendars));
-
+  const profile = getActiveProfile();
+  if (!profile) return;
+  profile.calendars = profile.calendars.filter((c) => c.id !== id);
+  // Save updated profile
+  const profiles = getAllProfiles();
+  const pidx = profiles.findIndex((p) => p.id === profile.id);
+  if (pidx >= 0) profiles[pidx] = profile;
+  saveProfiles(profiles);
   // If deleted calendar was active, switch to first available
   if (getActiveCalendarId() === id) {
-    if (calendars.length > 0) {
-      setActiveCalendar(calendars[0].id);
+    if (profile.calendars.length > 0) {
+      setActiveCalendar(profile.calendars[0].id);
     } else {
       localStorage.removeItem(ACTIVE_CALENDAR_KEY);
     }
@@ -61,10 +143,16 @@ export const deleteCalendar = (id: string): void => {
 };
 
 export const renameCalendar = (id: string, newName: string): void => {
-  const calendar = getCalendarById(id);
+  const profile = getActiveProfile();
+  if (!profile) return;
+  const calendar = profile.calendars.find((c) => c.id === id);
   if (calendar) {
     calendar.name = newName;
-    saveCalendar(calendar);
+    // Save updated profile
+    const profiles = getAllProfiles();
+    const pidx = profiles.findIndex((p) => p.id === profile.id);
+    if (pidx >= 0) profiles[pidx] = profile;
+    saveProfiles(profiles);
   }
 };
 
@@ -78,18 +166,19 @@ export const getActiveCalendarId = (): string | null => {
 
 export const getActiveCalendar = (): Calendar | null => {
   const id = getActiveCalendarId();
+  const profile = getActiveProfile();
+  if (!profile) return null;
   if (!id) {
-    // If no active calendar, create a default one
-    const calendars = getAllCalendars();
-    if (calendars.length === 0) {
+    if (profile.calendars.length === 0) {
       return createCalendar("Personal");
     } else {
-      setActiveCalendar(calendars[0].id);
-      return calendars[0];
+      setActiveCalendar(profile.calendars[0].id);
+      return profile.calendars[0];
     }
   }
-  return getCalendarById(id) || null;
+  return profile.calendars.find((c) => c.id === id) || null;
 };
+
 
 // Entry Management Functions (for active calendar)
 
@@ -140,6 +229,14 @@ export const deleteEntry = (date: Date): void => {
   );
   saveCalendar(calendar);
 };
+// Helper to revive Date objects from JSON
+function dateReviver(key: string, value: any) {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) {
+    return new Date(value);
+  }
+  return value;
+}
+
 
 export const calculateMonthlySummary = (
   year: number,
@@ -174,10 +271,11 @@ export const calculateMonthlySummary = (
       .reduce((sum, s) => sum + s.duration, 0);
     csMonth += csForDay;
 
+    if (isRomanianHoliday(entryDate) || isWeekend(entryDate)) {
+      totalWeekend += dayTotalMinutes;
+    }
     if (isWeekday(entryDate)) {
       workDays += 1;
-    } else if (isWeekend(entryDate)) {
-      totalWeekend += dayTotalMinutes;
     }
   });
 
@@ -191,62 +289,7 @@ export const calculateMonthlySummary = (
 
   totalFTL = weekdaysCount * 8 * 60; // minutes
 
-  // Calculate cumulative CS total up to and including this month
-  const lastDayOfMonth = new Date(year, month + 1, 0);
-  const allEntries = getAllEntries();
-  const entriesUpToMonth = allEntries.filter((entry) => {
-    const d = new Date(entry.date);
-    return d <= lastDayOfMonth;
-  });
-
-  entriesUpToMonth.forEach((entry) => {
-    const cs = entry.shifts
-      .filter((s) => s.type === "cs")
-      .reduce((sum, s) => sum + s.duration, 0);
-    csTotal += cs;
-  });
-
-  // Calculate cumulative OL up to month
-  let totalOLUpToMonth = 0;
-  entriesUpToMonth.forEach((entry) => {
-    totalOLUpToMonth += entry.shifts.reduce((sum, s) => sum + s.duration, 0);
-  });
-
-  // Calculate cumulative FTL (sum of weekdays*8h) from first entry month to target month
-  let totalFTLUpToMonth = 0;
-  if (entriesUpToMonth.length > 0) {
-    const sorted = entriesUpToMonth
-      .map((e) => new Date(e.date))
-      .sort((a, b) => a.getTime() - b.getTime());
-    const start = new Date(sorted[0].getFullYear(), sorted[0].getMonth(), 1);
-    const end = lastDayOfMonth;
-
-    let cur = new Date(start.getFullYear(), start.getMonth(), 1);
-    while (cur <= end) {
-      const dim = new Date(cur.getFullYear(), cur.getMonth() + 1, 0).getDate();
-      let wdCount = 0;
-      for (let d = 1; d <= dim; d++) {
-        const dt = new Date(cur.getFullYear(), cur.getMonth(), d);
-        if (isWeekday(dt)) wdCount += 1;
-      }
-      totalFTLUpToMonth += wdCount * 8 * 60;
-      cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
-    }
-  }
-
-  const osMonth = totalOL - totalFTL; // month OS (no CS subtraction)
-  // osTotal: sum OS only for months that actually have entries
-  let osTotal = 0;
-  const monthlyBreakdown: {
-    year: number;
-    month: number;
-    monthOL: number;
-    monthFTL: number;
-    monthOS: number;
-    monthCS: number;
-  }[] = [];
-
-  // determine earliest month to consider (earliest saved entry or target month)
+  // Build a breakdown for all months up to and including the current month
   const all = getAllEntries();
   let startYear = year;
   let startMonth = month;
@@ -260,9 +303,32 @@ export const calculateMonthlySummary = (
 
   let cur = new Date(startYear, startMonth, 1);
   const target = new Date(year, month, 1);
-  while (cur <= target) {
-    const y = cur.getFullYear();
-    const m = cur.getMonth();
+  // Store per-month breakdowns
+  const monthlyBreakdown: {
+    year: number;
+    month: number;
+    monthOL: number;
+    monthFTL: number;
+    monthOS: number;
+    monthCS: number;
+    osDebt90d: number;
+    osTotalAfterDebt: number;
+  }[] = [];
+  // Rolling CS/debt logic
+  let prevOsTotalAfterDebt = 0;
+  let csPool = 0; // Accumulates all CS entered up to the current month
+  // Track all debts by month for robust chaining
+  let debts: { month: number; year: number; amount: number }[] = [];
+  // Build a list of all months from the first entry to the target month
+  const allMonths: { year: number; month: number }[] = [];
+  let tempCur = new Date(startYear, startMonth, 1);
+  while (tempCur <= target) {
+    allMonths.push({ year: tempCur.getFullYear(), month: tempCur.getMonth() });
+    tempCur = new Date(tempCur.getFullYear(), tempCur.getMonth() + 1, 1);
+  }
+
+  for (let idx = 0; idx < allMonths.length; idx++) {
+    const { year: y, month: m } = allMonths[idx];
     const monthEntriesAll = all.filter((entry) => {
       const d = new Date(entry.date);
       return d.getFullYear() === y && d.getMonth() === m;
@@ -282,17 +348,82 @@ export const calculateMonthlySummary = (
     }
     const monthFTL = monthWeekdays * 8 * 60;
 
+    const monthOS = monthOL - monthFTL;
+
+    // Add new debt (OS from this month) to debts array if positive
+    if (monthOS > 0) {
+      debts.push({ month: m, year: y, amount: monthOS });
+    }
+
+    // CS entered this month
     const monthCS = monthEntriesAll.reduce(
       (sum, entry) =>
-        sum +
-        entry.shifts.filter((s) => s.type === "cs").reduce((s2, s3) => s2 + s3.duration, 0),
+        sum + entry.shifts.filter((s) => s.type === "cs").reduce((s2, s3) => s2 + s3.duration, 0),
       0
     );
 
-    const monthOS = monthOL - monthFTL;
+    // Apply CS to oldest unpaid debt (starting with N-3, then N-4, etc.)
+    let csToApply = monthCS;
+    let csApplied = 0;
+    // Try to apply to debt from N-3
+    let debtMonthCS = m - 3;
+    let debtYearCS = y;
+    while (debtMonthCS < 0) {
+      debtMonthCS += 12;
+      debtYearCS -= 1;
+    }
+    let debtObjCS = debts.find(d => d.year === debtYearCS && d.month === debtMonthCS);
+    if (debtObjCS && debtObjCS.amount > 0 && csToApply > 0) {
+      const applied = Math.min(csToApply, debtObjCS.amount);
+      debtObjCS.amount -= applied;
+      csToApply -= applied;
+      csApplied += applied;
+    }
+    // If any CS left, apply to debt from N-4
+    if (csToApply > 0) {
+      let debtMonth90d = m - 4;
+      let debtYear90d = y;
+      while (debtMonth90d < 0) {
+        debtMonth90d += 12;
+        debtYear90d -= 1;
+      }
+      let debtObj90d = debts.find(d => d.year === debtYear90d && d.month === debtMonth90d);
+      if (debtObj90d && debtObj90d.amount > 0) {
+        const applied = Math.min(csToApply, debtObj90d.amount);
+        debtObj90d.amount -= applied;
+        csToApply -= applied;
+        csApplied += applied;
+      }
+    }
 
-    // only add to osTotal if there are entries (monthOL > 0)
-    if (monthOL > 0) osTotal += monthOS;
+    // Remove debts that are fully paid
+    debts = debts.filter((d) => d.amount > 0);
+
+
+    // OS Debt (90d) is the remaining amount of the debt from exactly 4 months ago (if any)
+    let debtMonth90d = m - 4;
+    let debtYear90d = y;
+    while (debtMonth90d < 0) {
+      debtMonth90d += 12;
+      debtYear90d -= 1;
+    }
+    // Find the original OS value from 4 months ago
+    let originalOs90d = 0;
+    let origMonthObj = monthlyBreakdown.find(d => d.year === debtYear90d && d.month === debtMonth90d);
+    if (origMonthObj) {
+      originalOs90d = origMonthObj.monthOS > 0 ? origMonthObj.monthOS : 0;
+    }
+    // The remaining debt for display
+    let osDebt90d = 0;
+    let debtObj90d = debts.find(d => d.year === debtYear90d && d.month === debtMonth90d);
+    if (debtObj90d) {
+      osDebt90d = debtObj90d.amount;
+    }
+
+    // Subtract the original OS value from 4 months ago when it becomes overdue
+    const overdueOs = originalOs90d;
+    const osTotalAfterDebt = roundToNearestMinute(prevOsTotalAfterDebt + monthOS - overdueOs);
+    prevOsTotalAfterDebt = osTotalAfterDebt;
 
     monthlyBreakdown.push({
       year: y,
@@ -300,39 +431,23 @@ export const calculateMonthlySummary = (
       monthOL,
       monthFTL,
       monthOS,
-      monthCS,
+      monthCS: csApplied, // Show CS applied to debt from 3 months ago
+      osDebt90d,
+      osTotalAfterDebt,
     });
-
-    cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
   }
 
-  // csBalance (not shown in UI anymore) would be osTotal - csTotal if needed
-  const csBalance = osTotal - csTotal;
+  // Find the current month in the breakdown
+  const thisMonth = monthlyBreakdown.find((mm) => mm.year === year && mm.month === month);
+  const osMonth = thisMonth ? thisMonth.monthOS : 0;
+  const osDebt90d = thisMonth ? thisMonth.osDebt90d : 0;
+  // CS entered in the current month (not just applied to old debt)
+  const csEntered = thisMonth ? thisMonth.monthCS : 0;
+  // OS Total should be reduced by CS entered in the current month
 
-  // Calculate OS debt: show unpaid OS from exactly 4 months ago (when 90 days have passed)
-  // OS from month M becomes debt visible in month M+4
-  let osDebt90d = 0;
-  
-  // Find the month that is exactly 4 months before current viewed month
-  let debtMonth = month - 4;
-  let debtYear = year;
-  
-  // Handle negative months (wrap to previous year)
-  while (debtMonth < 0) {
-    debtMonth += 12;
-    debtYear -= 1;
-  }
-
-  // Find OS from that month
-  const debtMonthData = monthlyBreakdown.find(
-    (m) => m.year === debtYear && m.month === debtMonth
-  );
-
-  if (debtMonthData) {
-    const { monthOS, monthCS } = debtMonthData;
-    // CS pays off the debt from this month
-    osDebt90d = Math.max(0, monthOS - monthCS);
-  }
+  // OS Total is the chained value after all debt/CS logic
+  const osTotal = thisMonth ? thisMonth.osTotalAfterDebt : 0;
+  const csBalance = osTotal;
 
   return {
     totalFTL: roundToNearestMinute(totalFTL),
@@ -340,8 +455,8 @@ export const calculateMonthlySummary = (
     totalWeekend: roundToNearestMinute(totalWeekend),
     workDays,
     offDays: 0,
-    csMonth: roundToNearestMinute(csMonth),
-    csTotal: roundToNearestMinute(csTotal),
+    csMonth: roundToNearestMinute(csEntered),
+    csTotal: roundToNearestMinute(csEntered),
     osMonth: roundToNearestMinute(osMonth),
     osTotal: roundToNearestMinute(osTotal),
     csBalance: roundToNearestMinute(csBalance),
@@ -360,22 +475,27 @@ if (typeof window !== "undefined") {
       return s;
     }
 
-    const calendars = localStorage.getItem(CALENDARS_STORAGE_KEY);
-    const parsed = calendars ? JSON.parse(calendars) : [];
-    console.log("Stored calendars:", parsed);
-    const activeId = localStorage.getItem(ACTIVE_CALENDAR_KEY);
-    const cal = parsed.find((c: any) => c.id === activeId) || parsed[0];
-    if (!cal) {
-      console.warn("No calendar data found in localStorage.");
+    const profiles = localStorage.getItem(PROFILES_STORAGE_KEY);
+    const parsed = profiles ? JSON.parse(profiles) : [];
+    console.log("Stored profiles:", parsed);
+    const activeProfileId = localStorage.getItem(ACTIVE_PROFILE_KEY);
+    const activeCalendarId = localStorage.getItem(ACTIVE_CALENDAR_KEY);
+    const profile = parsed.find((p: any) => p.id === activeProfileId) || parsed[0];
+    if (!profile) {
+      console.warn("No profile data found in localStorage.");
       return parsed;
     }
-
+    const cal = (profile.calendars || []).find((c: any) => c.id === activeCalendarId) || (profile.calendars || [])[0];
+    if (!cal) {
+      console.warn("No calendar data found in active profile.");
+      return { profiles: parsed, activeProfile: profile };
+    }
     const entries = (cal.entries || []).map((e: any) => ({
       date: new Date(e.date).toDateString(),
       minutes: e.shifts.reduce((s: number, sh: any) => s + (sh.duration || 0), 0),
       shifts: e.shifts.map((s: any) => s.type).join(","),
     }));
     console.table(entries);
-    return { calendars: parsed, active: cal, entries };
+    return { profiles: parsed, activeProfile: profile, activeCalendar: cal, entries };
   };
 }

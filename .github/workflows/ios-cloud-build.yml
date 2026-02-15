@@ -52,6 +52,9 @@ jobs:
           cd ios/App
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath ${{ github.workspace }}/Pontaj.xcarchive archive
 
+      - name: Copy ExportOptions.plist to ios/App
+        run: cp ${{ github.workspace }}/ExportOptions.plist ios/App/ExportOptions.plist
+
       - name: Export IPA
         run: |
           cd ios/App

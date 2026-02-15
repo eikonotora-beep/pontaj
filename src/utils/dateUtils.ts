@@ -1,40 +1,37 @@
 // Romanian legal holidays for 2024-2026
 export const romanianHolidays: Record<string, string[]> = {
   2024: [
-    "2024-01-01", // New Year's Day
+    "2024-01-01",
     "2024-01-02",
-    "2024-01-24", // Unification Day
-    "2024-02-10",
-    "2024-03-08", // International Women's Day
-    "2024-03-09",
-    "2024-05-01", // Labour Day
-    "2024-12-01", // National Day
-    "2024-12-25", // Christmas
-    "2024-12-26",
+    "2024-01-06",
+    "2024-01-07",
+    "2024-01-24",
+    "2024-05-01",
+    "2024-06-01",
+    "2024-08-15",
+    "2024-08-30",
   ],
   2025: [
-    "2025-01-01", // New Year's Day
+    "2025-01-01",
     "2025-01-02",
-    "2025-01-24", // Unification Day
-    "2025-02-10",
-    "2025-03-08", // International Women's Day
-    "2025-03-09",
-    "2025-05-01", // Labour Day
-    "2025-12-01", // National Day
-    "2025-12-25", // Christmas
-    "2025-12-26",
+    "2025-01-06",
+    "2025-01-07",
+    "2025-01-24",
+    "2025-05-01",
+    "2025-06-01",
+    "2025-08-15",
+    "2025-08-30",
   ],
   2026: [
-    "2026-01-01", // New Year's Day
+    "2026-01-01",
     "2026-01-02",
-    "2026-01-24", // Unification Day
-    "2026-02-10",
-    "2026-03-08", // International Women's Day
-    "2026-03-09",
-    "2026-05-01", // Labour Day
-    "2026-12-01", // National Day
-    "2026-12-25", // Christmas
-    "2026-12-26",
+    "2026-01-06",
+    "2026-01-07",
+    "2026-01-24",
+    "2026-05-01",
+    "2026-06-01",
+    "2026-08-15",
+    "2026-08-30",
   ],
 };
 
@@ -44,8 +41,15 @@ export const isRomanianHoliday = (date: Date): boolean => {
   const day = String(date.getDate()).padStart(2, "0");
   const dateStr = `${year}-${month}-${day}`;
 
+  // Check manual holidays in localStorage first
+  let manual: string[] = [];
+  try {
+    const stored = localStorage.getItem(`manualHolidays_${year}`);
+    if (stored) manual = JSON.parse(stored);
+  } catch {}
+
   const holidays = romanianHolidays[year as keyof typeof romanianHolidays] || [];
-  return holidays.includes(dateStr);
+  return manual.includes(dateStr) || holidays.includes(dateStr);
 };
 
 export const roundToNearestMinute = (minutes: number): number => {

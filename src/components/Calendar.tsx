@@ -183,24 +183,11 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
               </span>
             </div>
             <div className="summary-item">
-              <label>OS Remaining:</label>
-              <span className="summary-value">
-                {(() => {
-                  const rem = summary.osTotal - summary.csTotal;
-                  const sign = rem < 0 ? "-" : "";
-                  const abs = Math.abs(rem);
-                  return `${sign}${Math.floor(abs / 60)}h ${abs % 60}m`;
-                })()}
+              <label style={{ color: "#ff6b6b", fontWeight: 700 }}>⚠️ OS Debt (90d):</label>
+              <span className="summary-value" style={{ color: "#ff6b6b", fontWeight: 700 }}>
+                {Math.floor(summary.osDebt90d / 60)}h {summary.osDebt90d % 60}m
               </span>
             </div>
-            {summary.osDebt90d > 0 && (
-              <div className="summary-item">
-                <label style={{ color: "#ff6b6b", fontWeight: 700 }}>⚠️ OS Debt (90d):</label>
-                <span className="summary-value" style={{ color: "#ff6b6b", fontWeight: 700 }}>
-                  {Math.floor(summary.osDebt90d / 60)}h {summary.osDebt90d % 60}m
-                </span>
-              </div>
-            )}
           </div>
         </div>
       )}

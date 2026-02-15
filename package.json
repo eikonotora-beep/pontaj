@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Cross-platform calendar app for tracking work hours with mobile and desktop support",
   "main": "public/electron.js",
-  "homepage": "./",
+  "homepage": "https://eikonotora-beep.github.io/pontaj",
   "author": "",
   "license": "MIT",
   "scripts": {
@@ -17,10 +17,13 @@
     "mobile": "capacitor open ios",
     "mobile-android": "capacitor open android",
     "build:web": "react-scripts build",
-    "sync-mobile": "npm run build:web && capacitor sync"
+    "sync-mobile": "npm run build:web && capacitor sync",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "dependencies": {
     "date-fns": "^2.30.0",
+    "gh-pages": "^6.3.0",
     "react": "^18.2.0",
     "react-calendar": "^4.2.1",
     "react-dom": "^18.2.0",

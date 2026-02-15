@@ -1,0 +1,70 @@
+.holiday-manager {
+  background: #f8f9fd;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(60, 60, 120, 0.06);
+  padding: 20px 18px 16px 18px;
+  margin-top: 24px;
+  font-family: inherit;
+  color: #222;
+}
+.holiday-manager h4 {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #4a4a8a;
+}
+.holiday-manager input[type="text"] {
+  border: 1px solid #bfc4e0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.2s;
+  background: #fff;
+}
+.holiday-manager input[type="text"]:focus {
+  border: 1.5px solid #6a6ad6;
+}
+.holiday-manager button {
+  background: #6a6ad6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.holiday-manager button:hover {
+  background: #4a4a8a;
+}
+.holiday-manager ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.holiday-manager li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid #ececf6;
+  font-size: 0.98rem;
+}
+.holiday-manager li:last-child {
+  border-bottom: none;
+}
+.holiday-manager .remove-btn {
+  background: #ff4d4f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 0.95rem;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.holiday-manager .remove-btn:hover {
+  background: #d9363e;
+}
