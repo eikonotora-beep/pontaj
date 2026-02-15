@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/pontaj/static/css/main.c477521b.css",
+    "main.js": "/pontaj/static/js/main.a865a3de.js",
+    "index.html": "/pontaj/index.html",
+    "main.c477521b.css.map": "/pontaj/static/css/main.c477521b.css.map",
+    "main.a865a3de.js.map": "/pontaj/static/js/main.a865a3de.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.c477521b.css",
+    "static/js/main.a865a3de.js"
+  ]
+}

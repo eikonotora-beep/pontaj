@@ -1,0 +1,19 @@
+node_modules
+dist
+build
+*.log
+.DS_Store
+.env
+.env.local
+coverage
+.idea
+.vscode
+*.swp
+*.swo
+electron-builder.yml
+**/android/app/src/main/assets/capacitor.config.json
+**/ios/App/App/capacitor.config.json
+**/ios/App/Podfile.lock
+
+# Ignore ios folder so CI can generate it
+ios/
