@@ -256,7 +256,7 @@ export const calculateMonthlySummary = (
   let csTotal = 0;
 
   // Sum total OL and weekend hours from entries (for the month)
-  monthEntries.forEach((entry) => {
+  monthEntries.forEach((entry, idx) => {
     const entryDate = new Date(entry.date);
     const dayTotalMinutes = entry.shifts.reduce(
       (sum, shift) => sum + shift.duration,
@@ -271,8 +271,28 @@ export const calculateMonthlySummary = (
       .reduce((sum, s) => sum + s.duration, 0);
     csMonth += csForDay;
 
+    // Weekend hours calculation for night shifts
+    entry.shifts.forEach((shift) => {
+      if (shift.type === "night") {
+        // Find next day
+        const nextEntry = monthEntries[idx + 1];
+        const nextDate = nextEntry ? new Date(nextEntry.date) : new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate() + 1);
+        const isCurrentHolidayOrWeekday = isWeekday(entryDate) || isRomanianHoliday(entryDate);
+        const isNextHolidayOrWeekend = isWeekend(nextDate) || isRomanianHoliday(nextDate);
+        if (isCurrentHolidayOrWeekday && !isNextHolidayOrWeekend) {
+          totalWeekend += 5 * 60 + 15; // 5:15 h
+        } else if (!isCurrentHolidayOrWeekday && isNextHolidayOrWeekend) {
+          totalWeekend += 7 * 60 + 15; // 7:15 h
+        }
+        // Otherwise, do not count night shift towards weekend hours
+      }
+    });
+
+    // For other shifts, count as before
     if (isRomanianHoliday(entryDate) || isWeekend(entryDate)) {
-      totalWeekend += dayTotalMinutes;
+      // Only add non-night shift durations
+      const nonNightMinutes = entry.shifts.filter(s => s.type !== "night").reduce((sum, s) => sum + s.duration, 0);
+      totalWeekend += nonNightMinutes;
     }
     if (isWeekday(entryDate)) {
       workDays += 1;
