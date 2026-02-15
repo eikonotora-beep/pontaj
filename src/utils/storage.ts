@@ -279,13 +279,12 @@ export const calculateMonthlySummary = (
         const nextDate = nextEntry ? new Date(nextEntry.date) : new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate() + 1);
         const isCurrentHolidayOrWeekend = isWeekend(entryDate) || isRomanianHoliday(entryDate);
         const isNextHolidayOrWeekend = isWeekend(nextDate) || isRomanianHoliday(nextDate);
-        const isCurrentHolidayOrWeekday = isWeekday(entryDate) || isRomanianHoliday(entryDate);
         // If night is on weekend/holiday and next day is also weekend/holiday, count actual hours
         if (isCurrentHolidayOrWeekend && isNextHolidayOrWeekend) {
           totalWeekend += shift.duration;
-        } else if (isCurrentHolidayOrWeekday && !isNextHolidayOrWeekend) {
+        } else if (isCurrentHolidayOrWeekend && !isNextHolidayOrWeekend) {
           totalWeekend += 5 * 60 + 15; // 5:15 h
-        } else if (!isCurrentHolidayOrWeekday && isNextHolidayOrWeekend) {
+        } else if (!isCurrentHolidayOrWeekend && isNextHolidayOrWeekend) {
           totalWeekend += 7 * 60 + 15; // 7:15 h
         }
         // Otherwise, do not count night shift towards weekend hours
