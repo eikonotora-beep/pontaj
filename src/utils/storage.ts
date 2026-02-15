@@ -277,15 +277,24 @@ export const calculateMonthlySummary = (
         // Find next day
         const nextEntry = monthEntries[idx + 1];
         const nextDate = nextEntry ? new Date(nextEntry.date) : new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate() + 1);
-        const isCurrentHolidayOrWeekend = isWeekend(entryDate) || isRomanianHoliday(entryDate);
-        const isNextHolidayOrWeekend = isWeekend(nextDate) || isRomanianHoliday(nextDate);
+        const isCurrentHoliday = isRomanianHoliday(entryDate);
+        const isCurrentWeekend = isWeekend(entryDate);
+        const isNextHoliday = isRomanianHoliday(nextDate);
+        const isNextWeekend = isWeekend(nextDate);
+        const isCurrentHolidayOrWeekend = isCurrentHoliday || isCurrentWeekend;
+        const isNextHolidayOrWeekend = isNextHoliday || isNextWeekend;
+        // Debug output
+        console.log(`[DEBUG] Night shift on ${entryDate.toISOString().slice(0,10)}: currentHoliday=${isCurrentHoliday}, currentWeekend=${isCurrentWeekend}, nextHoliday=${isNextHoliday}, nextWeekend=${isNextWeekend}, duration=${shift.duration}`);
         // If night is on weekend/holiday and next day is also weekend/holiday, count actual hours
         if (isCurrentHolidayOrWeekend && isNextHolidayOrWeekend) {
           totalWeekend += shift.duration;
+          console.log(`[DEBUG]  -> Counted ${shift.duration} min as weekend hours (night shift, both days weekend/holiday)`);
         } else if (isCurrentHolidayOrWeekend && !isNextHolidayOrWeekend) {
           totalWeekend += 5 * 60 + 15; // 5:15 h
+          console.log(`[DEBUG]  -> Counted 315 min as weekend hours (night shift, only current day weekend/holiday)`);
         } else if (!isCurrentHolidayOrWeekend && isNextHolidayOrWeekend) {
           totalWeekend += 7 * 60 + 15; // 7:15 h
+          console.log(`[DEBUG]  -> Counted 435 min as weekend hours (night shift, only next day weekend/holiday)`);
         }
         // Otherwise, do not count night shift towards weekend hours
       }
@@ -296,6 +305,9 @@ export const calculateMonthlySummary = (
       // Only add non-night shift durations
       const nonNightMinutes = entry.shifts.filter(s => s.type !== "night").reduce((sum, s) => sum + s.duration, 0);
       totalWeekend += nonNightMinutes;
+      if (nonNightMinutes > 0) {
+        console.log(`[DEBUG] Day ${entryDate.toISOString().slice(0,10)} is holiday/weekend, counted ${nonNightMinutes} min (non-night shifts)`);
+      }
     }
     if (isWeekday(entryDate)) {
       workDays += 1;
