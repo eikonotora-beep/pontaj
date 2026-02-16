@@ -271,7 +271,7 @@ export const calculateMonthlySummary = (
       .reduce((sum, s) => sum + s.duration, 0);
     csMonth += csForDay;
 
-    // Weekend hours calculation for night shifts
+    // Weekend/holiday logic refactor
     entry.shifts.forEach((shift) => {
       if (shift.type === "night") {
         // Find next day
@@ -281,33 +281,23 @@ export const calculateMonthlySummary = (
         const isCurrentWeekend = isWeekend(entryDate);
         const isNextHoliday = isRomanianHoliday(nextDate);
         const isNextWeekend = isWeekend(nextDate);
-        const isCurrentHolidayOrWeekend = isCurrentHoliday || isCurrentWeekend;
-        const isNextHolidayOrWeekend = isNextHoliday || isNextWeekend;
-        // Debug output
-        console.log(`[DEBUG] Night shift on ${entryDate.toISOString().slice(0,10)}: currentHoliday=${isCurrentHoliday}, currentWeekend=${isCurrentWeekend}, nextHoliday=${isNextHoliday}, nextWeekend=${isNextWeekend}, duration=${shift.duration}`);
-        // If night is on weekend/holiday and next day is also weekend/holiday, count actual hours
-        if (isCurrentHolidayOrWeekend && isNextHolidayOrWeekend) {
+        // Rule 1: Night on weekend/holiday, next day also weekend/holiday: count actual hours
+        if ((isCurrentHoliday || isCurrentWeekend) && (isNextHoliday || isNextWeekend)) {
           totalWeekend += shift.duration;
-          console.log(`[DEBUG]  -> Counted ${shift.duration} min as weekend hours (night shift, both days weekend/holiday)`);
-        } else if (isCurrentHolidayOrWeekend && !isNextHolidayOrWeekend) {
-          totalWeekend += 5 * 60 + 15; // 5:15 h
-          console.log(`[DEBUG]  -> Counted 315 min as weekend hours (night shift, only current day weekend/holiday)`);
-        } else if (!isCurrentHolidayOrWeekend && isNextHolidayOrWeekend) {
-          totalWeekend += 7 * 60 + 15; // 7:15 h
-          console.log(`[DEBUG]  -> Counted 435 min as weekend hours (night shift, only next day weekend/holiday)`);
+        // Rule 2: Night on weekend/holiday, next day NOT weekend/holiday: count 5:15
+        } else if ((isCurrentHoliday || isCurrentWeekend) && !(isNextHoliday || isNextWeekend)) {
+          totalWeekend += 5 * 60 + 15;
+        // Rule 3: Night NOT on weekend/holiday, next day IS weekend/holiday: count 7:15
+        } else if (!(isCurrentHoliday || isCurrentWeekend) && (isNextHoliday || isNextWeekend)) {
+          totalWeekend += 7 * 60 + 15;
         }
         // Otherwise, do not count night shift towards weekend hours
       }
     });
-
-    // For other shifts, count as before
+    // For other shifts: if the day is a weekend or holiday, count the full duration (except night shifts)
     if (isRomanianHoliday(entryDate) || isWeekend(entryDate)) {
-      // Only add non-night shift durations
       const nonNightMinutes = entry.shifts.filter(s => s.type !== "night").reduce((sum, s) => sum + s.duration, 0);
       totalWeekend += nonNightMinutes;
-      if (nonNightMinutes > 0) {
-        console.log(`[DEBUG] Day ${entryDate.toISOString().slice(0,10)} is holiday/weekend, counted ${nonNightMinutes} min (non-night shifts)`);
-      }
     }
     if (isWeekday(entryDate)) {
       workDays += 1;
