@@ -66,6 +66,12 @@ function App() {
         {(activeSection === "settings" || window.innerWidth >= 700) && (
           <aside className="app-sidebar" style={{ minWidth: 220, marginLeft: window.innerWidth < 700 ? 0 : 24 }}>
             <HolidayManager year={new Date().getFullYear()} />
+            <div style={{ marginTop: 16 }}>
+              {/* Export to Excel button for debugging/backup */}
+              <React.Suspense fallback={null}>
+                {React.createElement(require("./components/ExportEntriesButton").default)}
+              </React.Suspense>
+            </div>
           </aside>
         )}
       </main>

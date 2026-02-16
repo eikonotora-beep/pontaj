@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+// @ts-ignore
+import { zonedTimeToUtc, utcToZonedTime, format as formatTz } from 'date-fns-tz';
 import { DayEntry, ShiftType } from "../types/index";
 import { isRomanianHoliday, isWeekend } from "../utils/dateUtils";
 import { getEntryByDate, saveEntry } from "../utils/storage";
@@ -17,15 +19,20 @@ const DayEntryForm: React.FC<DayEntryFormProps> = ({
   onClose,
 }) => {
   const [entry, setEntry] = useState<DayEntry>(() => {
-    const existing = getEntryByDate(date);
-    return (
-      existing || {
-        id: `${date.getTime()}`,
-        date,
-        shifts: [],
-        notes: "",
-      }
-    );
+    // Always use Bucharest time for entry date
+    const roDate = utcToZonedTime(date, 'Europe/Bucharest');
+    const year = roDate.getFullYear();
+    const month = (roDate.getMonth() + 1).toString().padStart(2, '0');
+    const day = roDate.getDate().toString().padStart(2, '0');
+    const localDateString = `${year}-${month}-${day}`;
+    const existing = getEntryByDate(roDate);
+    if (existing) return existing;
+    return {
+      id: `${roDate.getTime()}`,
+      date: localDateString,
+      shifts: [],
+      notes: "",
+    };
   });
 
   const [selectedShifts, setSelectedShifts] = useState<ShiftType[]>(() => {
@@ -35,7 +42,7 @@ const DayEntryForm: React.FC<DayEntryFormProps> = ({
   const [repeatEnabled, setRepeatEnabled] = useState<boolean>(false);
   const [repeatInterval, setRepeatInterval] = useState<number>(1);
   const [repeatUntil, setRepeatUntil] = useState<string>(
-    new Date().toISOString().slice(0, 10)
+    formatTz(utcToZonedTime(new Date(), 'Europe/Bucharest'), 'yyyy-MM-dd', { timeZone: 'Europe/Bucharest' })
   );
 
   const shiftOptions: ShiftType[] = ["day", "night", "neither", "cs"];
@@ -126,7 +133,8 @@ const DayEntryForm: React.FC<DayEntryFormProps> = ({
     });
 
     if (repeatEnabled) {
-      const until = new Date(repeatUntil + "T23:59:59");
+      // Always use Bucharest time for repeat range
+      const until = utcToZonedTime(new Date(repeatUntil + "T23:59:59"), 'Europe/Bucharest');
       if (isNaN(until.getTime())) {
         // invalid until date, fallback to single save
         saveEntry({ ...entry, shifts: preparedShifts });
@@ -135,7 +143,7 @@ const DayEntryForm: React.FC<DayEntryFormProps> = ({
       }
 
       const results: DayEntry[] = [];
-      let current = new Date(entry.date);
+      let current = utcToZonedTime(new Date(entry.date + 'T00:00:00'), 'Europe/Bucharest');
       current.setHours(0, 0, 0, 0);
 
       // compute preview: how many entries and total minutes will be created
@@ -181,10 +189,13 @@ const DayEntryForm: React.FC<DayEntryFormProps> = ({
           return s;
         });
 
+        const roYear = current.getFullYear();
+        const roMonth = (current.getMonth() + 1).toString().padStart(2, '0');
+        const roDay = current.getDate().toString().padStart(2, '0');
         const newEntry: DayEntry = {
           ...entry,
           id: `${current.getTime()}`,
-          date: new Date(current),
+          date: `${roYear}-${roMonth}-${roDay}`,
           shifts: shiftsForDay,
         };
         results.push(newEntry);
@@ -198,7 +209,9 @@ const DayEntryForm: React.FC<DayEntryFormProps> = ({
     }
 
     // Single save: if entry contains CO/CM and the date is weekend/holiday, set duration 0
-    const isWeekendOrHoliday = isWeekend(entry.date) || isRomanianHoliday(entry.date);
+    // Convert entry.date string to Date in Bucharest time for checks
+    const entryDateObj = utcToZonedTime(new Date(entry.date + 'T00:00:00'), 'Europe/Bucharest');
+    const isWeekendOrHoliday = isWeekend(entryDateObj) || isRomanianHoliday(entryDateObj);
     let finalShifts = preparedShifts.map((s) => ({ ...s }));
     if (finalShifts.some((s) => s.type === "co" || s.type === "cm")) {
       finalShifts = finalShifts.map((s) =>

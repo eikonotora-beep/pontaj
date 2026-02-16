@@ -5,6 +5,7 @@ import {
   isWeekend,
   isWeekday,
 } from "../utils/dateUtils";
+import {
   getAllEntries,
   calculateMonthlySummary,
   getEntryByDate,
@@ -189,15 +190,13 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
             <div className="summary-item">
               <label>Total Hours (OL):</label>
               <span className="summary-value">
-                {Math.floor(summary.totalOL / 60)}h{" "}
-                {summary.totalOL % 60}m
+                {Math.floor(summary.totalOL / 60)}h {summary.totalOL % 60}m
               </span>
             </div>
             <div className="summary-item">
               <label>Weekend Hours:</label>
               <span className="summary-value">
-                {Math.floor(summary.totalWeekend / 60)}h{" "}
-                {summary.totalWeekend % 60}m
+                {Math.floor(summary.totalWeekend / 60)}h {summary.totalWeekend % 60}m
               </span>
             </div>
             <div className="summary-item">
@@ -234,6 +233,6 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
       )}
     </div>
   );
-};
+}
 
 export default Calendar;

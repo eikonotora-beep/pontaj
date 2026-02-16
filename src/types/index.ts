@@ -2,7 +2,7 @@ export type ShiftType = "day" | "night" | "neither" | "cs" | "co" | "cm" | "inv"
 
 export interface DayEntry {
   id: string;
-  date: Date;
+  date: string; // 'YYYY-MM-DD' (local midnight)
   shifts: {
     type: ShiftType;
     startTime: string;

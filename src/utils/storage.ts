@@ -1,3 +1,5 @@
+// @ts-ignore
+import { zonedTimeToUtc, utcToZonedTime, format as formatTz } from 'date-fns-tz';
 import { DayEntry, MonthSummary, Calendar, Profile } from "../types/index";
 import { isWeekday, isWeekend, roundToNearestMinute, isRomanianHoliday } from "../utils/dateUtils";
 // ...existing code...
@@ -186,9 +188,17 @@ export const saveEntry = (entry: DayEntry): void => {
   const calendar = getActiveCalendar();
   if (!calendar) return;
 
+  // Always save entry date as a string in 'YYYY-MM-DD' in Europe/Bucharest timezone
+  let localDateString = entry.date;
+  if (typeof entry.date === 'object' && entry.date !== null && 'getFullYear' in entry.date) {
+    // Convert to Bucharest time and format as YYYY-MM-DD
+    const tzDate = utcToZonedTime(entry.date, 'Europe/Bucharest');
+    localDateString = formatTz(tzDate, 'yyyy-MM-dd', { timeZone: 'Europe/Bucharest' });
+  }
+  entry.date = localDateString;
+
   const existingIndex = calendar.entries.findIndex(
-    (e) =>
-      new Date(e.date).toDateString() === new Date(entry.date).toDateString()
+    (e) => e.date === localDateString
   );
 
   if (existingIndex >= 0) {
@@ -207,26 +217,21 @@ export const getAllEntries = (): DayEntry[] => {
 
 export const getEntryByDate = (date: Date): DayEntry | undefined => {
   const entries = getAllEntries();
-  const found = entries.find(
-    (e) =>
-      new Date(e.date).toDateString() === date.toDateString()
-  );
-  if (!found) return undefined;
-  // ensure returned entry.date is a Date object for consumers
-  return {
-    ...found,
-    date: new Date(found.date),
-  };
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const localDateString = `${year}-${month}-${day}`;
+  return entries.find(e => e.date === localDateString);
 };
 
 export const deleteEntry = (date: Date): void => {
   const calendar = getActiveCalendar();
   if (!calendar) return;
-
-  calendar.entries = calendar.entries.filter(
-    (e) =>
-      new Date(e.date).toDateString() !== date.toDateString()
-  );
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const localDateString = `${year}-${month}-${day}`;
+  calendar.entries = calendar.entries.filter(e => e.date !== localDateString);
   saveCalendar(calendar);
 };
 // Helper to revive Date objects from JSON
@@ -250,10 +255,26 @@ export const calculateMonthlySummary = (
     const localMonth = entryDate.getMonth();
     return localYear === year && localMonth === month;
   });
+  let totalWeekend = 0;
+  // If no entries at all, or no entries for the month, return all summary values as zero
+  if (entries.length === 0 || monthEntries.length === 0) {
+    return {
+      totalFTL: 0,
+      totalOL: 0,
+      totalWeekend: 0,
+      workDays: 0,
+      offDays: 0,
+      csMonth: 0,
+      csTotal: 0,
+      osMonth: 0,
+      osTotal: 0,
+      csBalance: 0,
+      osDebt90d: 0,
+    };
+  }
 
   let totalFTL = 0;
   let totalOL = 0;
-  let totalWeekend = 0;
   let workDays = 0;
   let csMonth = 0;
   let csTotal = 0;
@@ -275,33 +296,28 @@ export const calculateMonthlySummary = (
       .reduce((sum, s) => sum + s.duration, 0);
     csMonth += csForDay;
 
-    // Weekend/holiday logic refactor
-    entry.shifts.forEach((shift) => {
+    // Generalized weekend/holiday calculation for all months
+    const isWeekendOrHoliday = isRomanianHoliday(entryDate) || isWeekend(entryDate);
+    for (const shift of entry.shifts) {
+      if (shift.type === "day" && isWeekendOrHoliday) {
+        totalWeekend += shift.duration;
+      }
       if (shift.type === "night") {
-        // Find next day
-        const nextEntry = monthEntries[idx + 1];
-        const nextDate = nextEntry ? new Date(nextEntry.date) : new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate() + 1);
-        const isCurrentHoliday = isRomanianHoliday(entryDate);
-        const isCurrentWeekend = isWeekend(entryDate);
-        const isNextHoliday = isRomanianHoliday(nextDate);
-        const isNextWeekend = isWeekend(nextDate);
+        // Always use the next calendar day, not just the next entry
+        const nextDate = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate() + 1);
+        const isCurrentWeekendOrHoliday = isWeekendOrHoliday;
+        const isNextWeekendOrHoliday = isRomanianHoliday(nextDate) || isWeekend(nextDate);
         // Rule 1: Night on weekend/holiday, next day also weekend/holiday: count actual hours
-        if ((isCurrentHoliday || isCurrentWeekend) && (isNextHoliday || isNextWeekend)) {
+        if (isCurrentWeekendOrHoliday && isNextWeekendOrHoliday) {
           totalWeekend += shift.duration;
         // Rule 2: Night on weekend/holiday, next day NOT weekend/holiday: count 5:15
-        } else if ((isCurrentHoliday || isCurrentWeekend) && !(isNextHoliday || isNextWeekend)) {
+        } else if (isCurrentWeekendOrHoliday && !isNextWeekendOrHoliday) {
           totalWeekend += 5 * 60 + 15;
         // Rule 3: Night NOT on weekend/holiday, next day IS weekend/holiday: count 7:15
-        } else if (!(isCurrentHoliday || isCurrentWeekend) && (isNextHoliday || isNextWeekend)) {
+        } else if (!isCurrentWeekendOrHoliday && isNextWeekendOrHoliday) {
           totalWeekend += 7 * 60 + 15;
         }
-        // Otherwise, do not count night shift towards weekend hours
       }
-    });
-    // For other shifts: if the day is a weekend or holiday, count the full duration (except night shifts)
-    if (isRomanianHoliday(entryDate) || isWeekend(entryDate)) {
-      const nonNightMinutes = entry.shifts.filter(s => s.type !== "night").reduce((sum, s) => sum + s.duration, 0);
-      totalWeekend += nonNightMinutes;
     }
     if (isWeekday(entryDate)) {
       workDays += 1;
@@ -472,8 +488,6 @@ export const calculateMonthlySummary = (
   const osDebt90d = thisMonth ? thisMonth.osDebt90d : 0;
   // CS entered in the current month (not just applied to old debt)
   const csEntered = thisMonth ? thisMonth.monthCS : 0;
-  // OS Total should be reduced by CS entered in the current month
-
   // OS Total is the chained value after all debt/CS logic
   const osTotal = thisMonth ? thisMonth.osTotalAfterDebt : 0;
   const csBalance = osTotal;
