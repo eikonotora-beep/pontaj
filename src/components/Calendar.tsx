@@ -88,8 +88,17 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
 
   // Cells for each day of the month
   for (let day = 1; day <= daysInMonth; day++) {
+    // Use local time for calendar display and entry matching
     const date = new Date(year, month, day);
-    const entry = getEntryByDate(date);
+    // Find entry by local date
+    const entry = entries.find(e => {
+      const entryDate = new Date(e.date);
+      return (
+        entryDate.getFullYear() === date.getFullYear() &&
+        entryDate.getMonth() === date.getMonth() &&
+        entryDate.getDate() === date.getDate()
+      );
+    });
 
     // determine shift label to show: CS > CO > CM > INV > day > night
     let shiftLabel: string | null = null;

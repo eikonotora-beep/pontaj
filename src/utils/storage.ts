@@ -244,8 +244,11 @@ export const calculateMonthlySummary = (
 ): MonthSummary => {
   const entries = getAllEntries();
   const monthEntries = entries.filter((entry) => {
+    // Convert to local time for comparison
     const entryDate = new Date(entry.date);
-    return entryDate.getFullYear() === year && entryDate.getMonth() === month;
+    const localYear = entryDate.getFullYear();
+    const localMonth = entryDate.getMonth();
+    return localYear === year && localMonth === month;
   });
 
   let totalFTL = 0;
@@ -257,6 +260,7 @@ export const calculateMonthlySummary = (
 
   // Sum total OL and weekend hours from entries (for the month)
   monthEntries.forEach((entry, idx) => {
+    // Always use local time for calculations
     const entryDate = new Date(entry.date);
     const dayTotalMinutes = entry.shifts.reduce(
       (sum, shift) => sum + shift.duration,
