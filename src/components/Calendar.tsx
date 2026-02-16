@@ -18,7 +18,16 @@ interface CalendarProps {
 }
 
 const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  // Use sessionStorage to persist the last viewed month/year across re-renders (but not full refresh)
+  const getInitialDate = () => {
+    const saved = sessionStorage.getItem('calendar_lastViewedMonth');
+    if (saved) {
+      const d = new Date(saved);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return new Date();
+  };
+  const [currentDate, setCurrentDate] = useState(getInitialDate());
   const [summary, setSummary] = useState<MonthSummary | null>(null);
   const [entries, setEntries] = useState<DayEntry[]>([]);
 
@@ -29,6 +38,8 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
     setEntries(getAllEntries());
     const monthlySummary = calculateMonthlySummary(year, month);
     setSummary(monthlySummary);
+    // Save last viewed month/year in sessionStorage
+    sessionStorage.setItem('calendar_lastViewedMonth', currentDate.toISOString());
   }, [currentDate, year, month]);
 
   const getDaysInMonth = (year: number, month: number) => {

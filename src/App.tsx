@@ -32,6 +32,7 @@ function App() {
 
   const handleFormSave = useCallback(() => {
     setShowForm(false);
+    // Do NOT reset calendar month after save; just refresh data
     setRefreshKey((prev) => prev + 1);
   }, []);
 
