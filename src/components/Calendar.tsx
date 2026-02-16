@@ -5,10 +5,11 @@ import {
   isWeekend,
   isWeekday,
 } from "../utils/dateUtils";
-import {
   getAllEntries,
   calculateMonthlySummary,
   getEntryByDate,
+  getActiveProfile,
+  saveCalendar,
 } from "../utils/storage";
 import "../styles/Calendar.css";
 
@@ -41,6 +42,23 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
     // Save last viewed month/year in sessionStorage
     sessionStorage.setItem('calendar_lastViewedMonth', currentDate.toISOString());
   }, [currentDate, year, month]);
+
+  // Delete all entries for the current month
+  const handleDeleteMonthEntries = () => {
+    if (!window.confirm("Are you sure you want to delete all entries for this month? This cannot be undone.")) return;
+    const profile = getActiveProfile();
+    if (!profile) return;
+    const cal = profile.calendars.find(c => c.id === (localStorage.getItem('pontaj_active_calendar') || (profile.calendars[0] && profile.calendars[0].id)));
+    if (!cal) return;
+    const newEntries = cal.entries.filter(e => {
+      const d = new Date(e.date);
+      return !(d.getFullYear() === year && d.getMonth() === month);
+    });
+    cal.entries = newEntries;
+    saveCalendar(cal);
+    setEntries(getAllEntries());
+    setSummary(calculateMonthlySummary(year, month));
+  };
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -131,6 +149,9 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
 
   return (
     <div className="calendar-container">
+      <button style={{float:'right',marginBottom:8,background:'#ff6b6b',color:'#fff',border:'none',borderRadius:6,padding:'6px 14px',fontWeight:700,cursor:'pointer'}} onClick={handleDeleteMonthEntries}>
+        Delete all entries this month
+      </button>
       <div className="calendar-header">
         <button onClick={handlePrevMonth} className="nav-btn">
           ‹
