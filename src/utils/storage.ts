@@ -314,15 +314,15 @@ export const calculateMonthlySummary = (
     }
   });
 
-  // Calculate total FTL as every weekday in the month counts for 8 hours
+  // Calculate total FTL as every weekday that is not a holiday in the month counts for 8 hours
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  let weekdaysCount = 0;
+  let ftlDaysCount = 0;
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
-    if (isWeekday(date)) weekdaysCount += 1;
+    if (isWeekday(date) && !isRomanianHoliday(date)) ftlDaysCount += 1;
   }
 
-  totalFTL = weekdaysCount * 8 * 60; // minutes
+  totalFTL = ftlDaysCount * 8 * 60; // minutes
 
   // Build a breakdown for all months up to and including the current month
   const all = getAllEntries();
