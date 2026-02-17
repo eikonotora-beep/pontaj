@@ -4,7 +4,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyApASdnp-reOUCJnhbW4ws2K20pXhTFZtA",
+  apiKey: "AIzaSyDig3wwQRpVzH8VPgCcqm_V2jUrZO9ADSY",
   authDomain: "pontaj-e090b.firebaseapp.com",
   projectId: "pontaj-e090b",
   storageBucket: "pontaj-e090b.appspot.com",
