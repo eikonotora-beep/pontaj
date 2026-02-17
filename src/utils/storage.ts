@@ -16,6 +16,8 @@ export function getAllProfiles(): Profile[] {
 
 export function saveProfiles(profiles: Profile[]): void {
   localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+  // Dispatch event for cloud sync
+  window.dispatchEvent(new Event("pontaj_profiles_changed"));
 }
 
 export function getActiveProfileId(): string | null {

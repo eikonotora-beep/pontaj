@@ -1,4 +1,9 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./utils/firebase";
+import Login from "./components/Login";
+import { getAllProfiles, saveProfiles } from "./utils/storage";
+import { saveUserDataToCloud, loadUserDataFromCloud } from "./utils/cloudSync";
 import Calendar from "./components/Calendar";
 import DayEntryForm from "./components/DayEntryForm";
 import CalendarSelector from "./components/CalendarSelector";
@@ -9,6 +14,34 @@ import "./App.css";
 
 
 function App() {
+  const [user, setUser] = useState<any>(null);
+  // Sync from cloud on login
+  useEffect(() => {
+    if (user && user.uid) {
+      loadUserDataFromCloud(user.uid).then((cloudProfiles) => {
+        if (cloudProfiles && cloudProfiles.length > 0) {
+          saveProfiles(cloudProfiles);
+        } else {
+          // If no cloud data, push local data to cloud
+          saveUserDataToCloud(user.uid, getAllProfiles());
+        }
+      });
+    }
+  }, [user]);
+
+  // Sync to cloud on any local change if logged in
+  useEffect(() => {
+    if (!user || !user.uid) return;
+    const handler = () => {
+      saveUserDataToCloud(user.uid, getAllProfiles());
+    };
+    window.addEventListener("pontaj_profiles_changed", handler);
+    return () => window.removeEventListener("pontaj_profiles_changed", handler);
+  }, [user]);
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsub();
+  }, []);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -53,6 +86,12 @@ function App() {
       >
         {(activeSection === "profile" || window.innerWidth >= 700) && (
           <aside className="app-sidebar">
+            {/* Login UI above profiles */}
+            <div style={{ marginBottom: 16 }}>
+              <Login onAuthChange={setUser} />
+              {user && <div style={{ color: 'green', fontWeight: 600, fontSize: 13, textAlign: 'center', marginTop: 4 }}>Logged in as: {user.email}</div>}
+              {!user && <div style={{ color: 'gray', fontSize: 13, textAlign: 'center', marginTop: 4 }}>Not logged in (local mode)</div>}
+            </div>
             <CalendarSelector onCalendarChange={handleProfileOrCalendarChange} />
           </aside>
         )}
