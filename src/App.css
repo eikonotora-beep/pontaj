@@ -51,6 +51,25 @@
   max-width: 1000px;
 }
 
+.sync-status {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sync-syncing {
+  color: #f1f1f1;
+}
+
+.sync-synced {
+  color: #b9f3c3;
+}
+
+.sync-error {
+  color: #ffb3b3;
+}
+
 @media (max-width: 1024px) {
   .app-main {
     flex-direction: column;

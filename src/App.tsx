@@ -15,12 +15,21 @@ import "./App.css";
 
 function App() {
   const [user, setUser] = useState<any>(null);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "error">("idle");
+  const [syncError, setSyncError] = useState<string>("");
   // Sync from cloud on login
   useEffect(() => {
-    if (user && user.uid) {
-      loadUserDataFromCloud(user.uid).then((cloudData) => {
-        // Debug: log what is loaded from the cloud
-        console.log("[Pontaj] Loaded cloud data:", cloudData);
+    if (!user || !user.uid) {
+      setSyncStatus("idle");
+      setSyncError("");
+      return;
+    }
+
+    const loadCloud = async () => {
+      try {
+        setSyncStatus("syncing");
+        setSyncError("");
+        const cloudData = await loadUserDataFromCloud(user.uid);
         if (cloudData) {
           saveProfiles(cloudData.profiles || []);
           setTimeout(() => {
@@ -50,20 +59,34 @@ function App() {
           setActiveCalendar("");
           setRefreshKey((prev) => prev + 1);
         }
-      });
-    }
+        setSyncStatus("synced");
+      } catch (err: any) {
+        setSyncStatus("error");
+        setSyncError(err?.message || "Cloud sync failed");
+      }
+    };
+
+    loadCloud();
   }, [user]);
 
   // Sync to cloud on any local change if logged in
   useEffect(() => {
     if (!user || !user.uid) return;
-    const handler = () => {
-      saveUserDataToCloud(
-        user.uid,
-        getAllProfiles(),
-        localStorage.getItem("pontaj_active_profile"),
-        localStorage.getItem("pontaj_active_calendar")
-      );
+    const handler = async () => {
+      try {
+        setSyncStatus("syncing");
+        setSyncError("");
+        await saveUserDataToCloud(
+          user.uid,
+          getAllProfiles(),
+          localStorage.getItem("pontaj_active_profile"),
+          localStorage.getItem("pontaj_active_calendar")
+        );
+        setSyncStatus("synced");
+      } catch (err: any) {
+        setSyncStatus("error");
+        setSyncError(err?.message || "Cloud sync failed");
+      }
     };
     window.addEventListener("pontaj_profiles_changed", handler);
     return () => window.removeEventListener("pontaj_profiles_changed", handler);
@@ -121,6 +144,13 @@ function App() {
               <Login onAuthChange={setUser} />
               {user && <div style={{ color: 'green', fontWeight: 600, fontSize: 13, textAlign: 'center', marginTop: 4 }}>Logged in as: {user.email}</div>}
               {!user && <div style={{ color: 'gray', fontSize: 13, textAlign: 'center', marginTop: 4 }}>Not logged in (local mode)</div>}
+              {user && (
+                <div className={`sync-status sync-${syncStatus}`}>
+                  {syncStatus === "syncing" && "Syncing..."}
+                  {syncStatus === "synced" && "Synced"}
+                  {syncStatus === "error" && `Sync error${syncError ? `: ${syncError}` : ""}`}
+                </div>
+              )}
             </div>
             <CalendarSelector onCalendarChange={handleProfileOrCalendarChange} />
           </aside>
