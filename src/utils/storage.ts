@@ -125,6 +125,8 @@ export const saveCalendar = (calendar: Calendar): void => {
   const pidx = profiles.findIndex((p) => p.id === profile.id);
   if (pidx >= 0) profiles[pidx] = profile;
   saveProfiles(profiles);
+  // Dispatch event for cloud sync (calendar change)
+  window.dispatchEvent(new Event("pontaj_profiles_changed"));
 };
 
 export const deleteCalendar = (id: string): void => {
@@ -210,6 +212,8 @@ export const saveEntry = (entry: DayEntry): void => {
   }
 
   saveCalendar(calendar);
+  // Dispatch event for cloud sync (entry change)
+  window.dispatchEvent(new Event("pontaj_profiles_changed"));
 };
 
 export const getAllEntries = (): DayEntry[] => {
@@ -235,6 +239,8 @@ export const deleteEntry = (date: Date): void => {
   const localDateString = `${year}-${month}-${day}`;
   calendar.entries = calendar.entries.filter(e => e.date !== localDateString);
   saveCalendar(calendar);
+  // Dispatch event for cloud sync (entry deletion)
+  window.dispatchEvent(new Event("pontaj_profiles_changed"));
 };
 // Helper to revive Date objects from JSON
 function dateReviver(key: string, value: any) {
