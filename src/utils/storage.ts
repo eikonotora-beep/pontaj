@@ -329,7 +329,10 @@ export const calculateMonthlySummary = (
   let ftlDaysCount = 0;
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
-    if (isWeekday(date) && !isRomanianHoliday(date)) ftlDaysCount += 1;
+    // Use isRomanianHoliday, which checks both official and manual holidays
+    if (isWeekday(date) && !isRomanianHoliday(date)) {
+      ftlDaysCount += 1;
+    }
   }
 
   totalFTL = ftlDaysCount * 8 * 60; // minutes
@@ -389,7 +392,7 @@ export const calculateMonthlySummary = (
     let monthWeekdays = 0;
     for (let d = 1; d <= dim; d++) {
       const dt = new Date(y, m, d);
-      if (isWeekday(dt)) monthWeekdays += 1;
+      if (isWeekday(dt) && !isRomanianHoliday(dt)) monthWeekdays += 1;
     }
     const monthFTL = monthWeekdays * 8 * 60;
 
