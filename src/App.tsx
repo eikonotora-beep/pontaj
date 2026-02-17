@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./utils/firebase";
 import Login from "./components/Login";
-import { getAllProfiles, saveProfiles } from "./utils/storage";
+import { getAllProfiles, saveProfiles, setActiveProfile, setActiveCalendar } from "./utils/storage";
 import { saveUserDataToCloud, loadUserDataFromCloud } from "./utils/cloudSync";
 import Calendar from "./components/Calendar";
 import DayEntryForm from "./components/DayEntryForm";
@@ -18,12 +18,20 @@ function App() {
   // Sync from cloud on login
   useEffect(() => {
     if (user && user.uid) {
-      loadUserDataFromCloud(user.uid).then((cloudProfiles) => {
-        if (cloudProfiles && cloudProfiles.length > 0) {
-          saveProfiles(cloudProfiles);
+      loadUserDataFromCloud(user.uid).then((cloudData) => {
+        if (cloudData && cloudData.profiles && cloudData.profiles.length > 0) {
+          saveProfiles(cloudData.profiles);
+          // Restore active profile and calendar if present
+          if (cloudData.activeProfileId) setActiveProfile(cloudData.activeProfileId);
+          if (cloudData.activeCalendarId) setActiveCalendar(cloudData.activeCalendarId);
         } else {
           // If no cloud data, push local data to cloud
-          saveUserDataToCloud(user.uid, getAllProfiles());
+          saveUserDataToCloud(
+            user.uid,
+            getAllProfiles(),
+            localStorage.getItem("pontaj_active_profile"),
+            localStorage.getItem("pontaj_active_calendar")
+          );
         }
       });
     }
@@ -33,7 +41,12 @@ function App() {
   useEffect(() => {
     if (!user || !user.uid) return;
     const handler = () => {
-      saveUserDataToCloud(user.uid, getAllProfiles());
+      saveUserDataToCloud(
+        user.uid,
+        getAllProfiles(),
+        localStorage.getItem("pontaj_active_profile"),
+        localStorage.getItem("pontaj_active_calendar")
+      );
     };
     window.addEventListener("pontaj_profiles_changed", handler);
     return () => window.removeEventListener("pontaj_profiles_changed", handler);
