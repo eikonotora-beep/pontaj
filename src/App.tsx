@@ -19,19 +19,36 @@ function App() {
   useEffect(() => {
     if (user && user.uid) {
       loadUserDataFromCloud(user.uid).then((cloudData) => {
-        if (cloudData && cloudData.profiles && cloudData.profiles.length > 0) {
-          saveProfiles(cloudData.profiles);
-          // Restore active profile and calendar if present
-          if (cloudData.activeProfileId) setActiveProfile(cloudData.activeProfileId);
-          if (cloudData.activeCalendarId) setActiveCalendar(cloudData.activeCalendarId);
+        // Debug: log what is loaded from the cloud
+        console.log("[Pontaj] Loaded cloud data:", cloudData);
+        if (cloudData) {
+          saveProfiles(cloudData.profiles || []);
+          setTimeout(() => {
+            // Always select a valid profile/calendar if none are set
+            const profiles = cloudData.profiles || [];
+            let selectedProfileId = cloudData.activeProfileId;
+            if (!selectedProfileId && profiles.length > 0) {
+              selectedProfileId = profiles[0].id;
+              setActiveProfile(selectedProfileId);
+            } else if (selectedProfileId) {
+              setActiveProfile(selectedProfileId);
+            }
+            let selectedCalendarId = cloudData.activeCalendarId;
+            const calendars = profiles.find(p => p.id === selectedProfileId)?.calendars || [];
+            if (!selectedCalendarId && calendars.length > 0) {
+              selectedCalendarId = calendars[0].id;
+              setActiveCalendar(selectedCalendarId);
+            } else if (selectedCalendarId) {
+              setActiveCalendar(selectedCalendarId);
+            }
+            setRefreshKey((prev) => prev + 1);
+          }, 0);
         } else {
-          // If no cloud data, push local data to cloud
-          saveUserDataToCloud(
-            user.uid,
-            getAllProfiles(),
-            localStorage.getItem("pontaj_active_profile"),
-            localStorage.getItem("pontaj_active_calendar")
-          );
+          // No cloud data at all, clear local data
+          saveProfiles([]);
+          setActiveProfile("");
+          setActiveCalendar("");
+          setRefreshKey((prev) => prev + 1);
         }
       });
     }
