@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/pontaj/static/css/main.a13c2cb1.css",
-    "main.js": "/pontaj/static/js/main.80ebd6b3.js",
+    "main.css": "/pontaj/static/css/main.8194ca21.css",
+    "main.js": "/pontaj/static/js/main.4f1f0b16.js",
     "index.html": "/pontaj/index.html",
-    "main.a13c2cb1.css.map": "/pontaj/static/css/main.a13c2cb1.css.map",
-    "main.80ebd6b3.js.map": "/pontaj/static/js/main.80ebd6b3.js.map"
+    "main.8194ca21.css.map": "/pontaj/static/css/main.8194ca21.css.map",
+    "main.4f1f0b16.js.map": "/pontaj/static/js/main.4f1f0b16.js.map"
   },
   "entrypoints": [
-    "static/css/main.a13c2cb1.css",
-    "static/js/main.80ebd6b3.js"
+    "static/css/main.8194ca21.css",
+    "static/js/main.4f1f0b16.js"
   ]
 }
