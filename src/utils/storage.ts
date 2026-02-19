@@ -367,6 +367,7 @@ export const calculateMonthlySummary = (
     monthFTL: number;
     monthOS: number;
     monthCS: number;
+    monthCSEntered: number;
     osDebt90d: number;
     osTotalAfterDebt: number;
   }[] = [];
@@ -412,14 +413,14 @@ export const calculateMonthlySummary = (
     }
 
     // CS entered this month
-    const monthCS = monthEntriesAll.reduce(
+    const monthCSEntered = monthEntriesAll.reduce(
       (sum, entry) =>
         sum + entry.shifts.filter((s) => s.type === "cs").reduce((s2, s3) => s2 + s3.duration, 0),
       0
     );
 
     // Apply CS to oldest unpaid debt (starting with N-3, then N-4, etc.)
-    let csToApply = monthCS;
+    let csToApply = monthCSEntered;
     let csApplied = 0;
     // Try to apply to debt from N-3
     let debtMonthCS = m - 3;
@@ -487,7 +488,8 @@ export const calculateMonthlySummary = (
       monthOL,
       monthFTL,
       monthOS,
-      monthCS: csApplied, // Show CS applied to debt from 3 months ago
+      monthCS: csApplied, // CS applied to debt from 3 months ago
+      monthCSEntered, // CS actually entered in this month
       osDebt90d,
       osTotalAfterDebt,
     });
@@ -497,8 +499,8 @@ export const calculateMonthlySummary = (
   const thisMonth = monthlyBreakdown.find((mm) => mm.year === year && mm.month === month);
   const osMonth = thisMonth ? thisMonth.monthOS : 0;
   const osDebt90d = thisMonth ? thisMonth.osDebt90d : 0;
-  // CS entered in the current month (not just applied to old debt)
-  const csEntered = thisMonth ? thisMonth.monthCS : 0;
+  // CS entered in the current month (actual input, not just applied to old debt)
+  const csEntered = thisMonth ? thisMonth.monthCSEntered : 0;
   // OS Total is the chained value after all debt/CS logic
   const osTotal = thisMonth ? thisMonth.osTotalAfterDebt : 0;
   const csBalance = osTotal;
