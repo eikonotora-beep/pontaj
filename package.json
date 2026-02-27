@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Cross-platform calendar app for tracking work hours with mobile and desktop support",
   "main": "public/electron.js",
-  "homepage": "https://eikonotora-beep.github.io/pontaj",
+  "homepage": ".",
   "author": "",
   "license": "MIT",
   "scripts": {
@@ -14,6 +14,9 @@
     "electron": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron . --dev\"",
     "electron-build": "npm run build && electron-builder",
+    "dist": "npm run build && electron-builder --win --x64",
+    "dist:portable": "npm run build && electron-builder --win portable",
+    "dist:all": "npm run build && electron-builder -mwl",
     "mobile": "capacitor open ios",
     "mobile-android": "capacitor open android",
     "build:web": "react-scripts build",
@@ -53,10 +56,49 @@
     "productName": "Pontaj Calendar",
     "files": [
       "build/**/*",
-      "public/electron.js"
+      "public/electron.js",
+      "public/preload.js",
+      "public/migrate-local-dates.js"
     ],
+    "extraMetadata": {
+      "main": "public/electron.js"
+    },
     "directories": {
-      "buildResources": "public"
+      "buildResources": "public",
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "sign": null,
+      "signingHashAlgorithms": []
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Pontaj Calendar",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.exe"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Office"
     }
   },
   "browserslist": {

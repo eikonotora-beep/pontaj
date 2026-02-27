@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./utils/firebase";
+import { onAuthStateChangedListener, getAuthPlatform } from "./utils/authAdapter";
 import Login from "./components/Login";
 import { getAllProfiles, saveProfiles, setActiveProfile, setActiveCalendar } from "./utils/storage";
 import { saveUserDataToCloud, loadUserDataFromCloud } from "./utils/cloudSync";
@@ -11,15 +10,24 @@ import HolidayManager from "./components/HolidayManager";
 import BottomNav from "./components/BottomNav";
 import "./App.css";
 
-
-
 function App() {
   const [user, setUser] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "error">("idle");
   const [syncError, setSyncError] = useState<string>("");
-  // Sync from cloud on login
+  const [authPlatform, setAuthPlatform] = useState<string>("");
+
+  // Initialize auth listener (works for both platforms)
   useEffect(() => {
-    if (!user || !user.uid) {
+    setAuthPlatform(getAuthPlatform());
+    const unsubscribe = onAuthStateChangedListener((authUser) => {
+      setUser(authUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Sync from cloud on login (only for web/Firebase)
+  useEffect(() => {
+    if (!user || !user.uid || authPlatform.includes("Local")) {
       setSyncStatus("idle");
       setSyncError("");
       return;
@@ -33,7 +41,6 @@ function App() {
         if (cloudData) {
           saveProfiles(cloudData.profiles || []);
           setTimeout(() => {
-            // Always select a valid profile/calendar if none are set
             const profiles = cloudData.profiles || [];
             let selectedProfileId = cloudData.activeProfileId;
             if (!selectedProfileId && profiles.length > 0) {
@@ -53,7 +60,6 @@ function App() {
             setRefreshKey((prev) => prev + 1);
           }, 0);
         } else {
-          // No cloud data at all, clear local data
           saveProfiles([]);
           setActiveProfile("");
           setActiveCalendar("");
@@ -67,11 +73,11 @@ function App() {
     };
 
     loadCloud();
-  }, [user]);
+  }, [user, authPlatform]);
 
-  // Sync to cloud on any local change if logged in
+  // Sync to cloud on any local change (only for web/Firebase)
   useEffect(() => {
-    if (!user || !user.uid) return;
+    if (!user || !user.uid || authPlatform.includes("Local")) return;
     const handler = async () => {
       try {
         setSyncStatus("syncing");
@@ -90,11 +96,8 @@ function App() {
     };
     window.addEventListener("pontaj_profiles_changed", handler);
     return () => window.removeEventListener("pontaj_profiles_changed", handler);
-  }, [user]);
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
-    return () => unsub();
-  }, []);
+  }, [user, authPlatform]);
+
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -118,7 +121,6 @@ function App() {
 
   const handleFormSave = useCallback(() => {
     setShowForm(false);
-    // Do NOT reset calendar month after save; just refresh data
     setRefreshKey((prev) => prev + 1);
   }, []);
 
@@ -142,13 +144,13 @@ function App() {
             {/* Login UI above profiles */}
             <div style={{ marginBottom: 16 }}>
               <Login onAuthChange={setUser} />
-              {user && <div style={{ color: 'green', fontWeight: 600, fontSize: 13, textAlign: 'center', marginTop: 4 }}>Logged in as: {user.email}</div>}
-              {!user && <div style={{ color: 'gray', fontSize: 13, textAlign: 'center', marginTop: 4 }}>Not logged in (local mode)</div>}
-              {user && (
+              {user && <div style={{ color: 'green', fontWeight: 600, fontSize: 13, textAlign: 'center', marginTop: 4 }}>✅ {user.email}</div>}
+              {!user && <div style={{ color: 'gray', fontSize: 13, textAlign: 'center', marginTop: 4 }}>📍 {authPlatform}</div>}
+              {user && authPlatform.includes("Firebase") && (
                 <div className={`sync-status sync-${syncStatus}`}>
-                  {syncStatus === "syncing" && "Syncing..."}
-                  {syncStatus === "synced" && "Synced"}
-                  {syncStatus === "error" && `Sync error${syncError ? `: ${syncError}` : ""}`}
+                  {syncStatus === "syncing" && "☁️ Syncing..."}
+                  {syncStatus === "synced" && "☁️ Synced"}
+                  {syncStatus === "error" && `❌ Sync error${syncError ? `: ${syncError}` : ""}`}
                 </div>
               )}
             </div>

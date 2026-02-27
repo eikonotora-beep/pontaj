@@ -318,12 +318,17 @@ export const calculateMonthlySummary = (
         // Rule 1: Night on weekend/holiday, next day also weekend/holiday: count actual hours
         if (isCurrentWeekendOrHoliday && isNextWeekendOrHoliday) {
           totalWeekend += shift.duration;
-        // Rule 2: Night on weekend/holiday, next day NOT weekend/holiday: count 5:15
+        // Rule 2: Night on weekend/holiday, next day NOT weekend/holiday: count hours till 00:00
         } else if (isCurrentWeekendOrHoliday && !isNextWeekendOrHoliday) {
-          totalWeekend += 5 * 60 + 15;
-        // Rule 3: Night NOT on weekend/holiday, next day IS weekend/holiday: count 7:15
+          const { timeToMinutes } = require("./dateUtils");
+          const startMinutes = timeToMinutes(shift.startTime);
+          const hoursTillMidnight = 24 * 60 - startMinutes;
+          totalWeekend += hoursTillMidnight;
+        // Rule 3: Night NOT on weekend/holiday, next day IS weekend/holiday: count hours after 00:00
         } else if (!isCurrentWeekendOrHoliday && isNextWeekendOrHoliday) {
-          totalWeekend += 7 * 60 + 15;
+          const { timeToMinutes } = require("./dateUtils");
+          const endMinutes = timeToMinutes(shift.endTime);
+          totalWeekend += endMinutes;
         }
       }
     }
@@ -368,12 +373,15 @@ export const calculateMonthlySummary = (
     monthOS: number;
     monthCS: number;
     monthCSEntered: number;
+    osCumulative: number;
+    csCumulative: number;
     osDebt90d: number;
     osTotalAfterDebt: number;
   }[] = [];
   // Rolling CS/debt logic
   let prevOsTotalAfterDebt = 0;
   let csPool = 0; // Accumulates all CS entered up to the current month
+  let osPool = 0; // Accumulates all OS generated up to the current month
   // Track all debts by month for robust chaining
   let debts: { month: number; year: number; amount: number }[] = [];
   // Build a list of all months from the first entry to the target month
@@ -406,6 +414,7 @@ export const calculateMonthlySummary = (
     const monthFTL = monthWeekdays * 8 * 60;
 
     const monthOS = monthOL - monthFTL;
+    osPool += monthOS;
 
     // Add new debt (OS from this month) to debts array if positive
     if (monthOS > 0) {
@@ -418,36 +427,24 @@ export const calculateMonthlySummary = (
         sum + entry.shifts.filter((s) => s.type === "cs").reduce((s2, s3) => s2 + s3.duration, 0),
       0
     );
+    csPool += monthCSEntered;
 
-    // Apply CS to oldest unpaid debt (starting with N-3, then N-4, etc.)
+    // Apply CS to oldest unpaid debts first (chronologically)
     let csToApply = monthCSEntered;
     let csApplied = 0;
-    // Try to apply to debt from N-3
-    let debtMonthCS = m - 3;
-    let debtYearCS = y;
-    while (debtMonthCS < 0) {
-      debtMonthCS += 12;
-      debtYearCS -= 1;
-    }
-    let debtObjCS = debts.find(d => d.year === debtYearCS && d.month === debtMonthCS);
-    if (debtObjCS && debtObjCS.amount > 0 && csToApply > 0) {
-      const applied = Math.min(csToApply, debtObjCS.amount);
-      debtObjCS.amount -= applied;
-      csToApply -= applied;
-      csApplied += applied;
-    }
-    // If any CS left, apply to debt from N-4
-    if (csToApply > 0) {
-      let debtMonth90d = m - 4;
-      let debtYear90d = y;
-      while (debtMonth90d < 0) {
-        debtMonth90d += 12;
-        debtYear90d -= 1;
-      }
-      let debtObj90d = debts.find(d => d.year === debtYear90d && d.month === debtMonth90d);
-      if (debtObj90d && debtObj90d.amount > 0) {
-        const applied = Math.min(csToApply, debtObj90d.amount);
-        debtObj90d.amount -= applied;
+    
+    // Sort debts by date (oldest first) and apply CS
+    const sortedDebts = [...debts].sort((a, b) => {
+      const dateA = new Date(a.year, a.month);
+      const dateB = new Date(b.year, b.month);
+      return dateA.getTime() - dateB.getTime();
+    });
+    
+    for (const debt of sortedDebts) {
+      if (csToApply <= 0) break;
+      if (debt.amount > 0) {
+        const applied = Math.min(csToApply, debt.amount);
+        debt.amount -= applied;
         csToApply -= applied;
         csApplied += applied;
       }
@@ -490,6 +487,8 @@ export const calculateMonthlySummary = (
       monthOS,
       monthCS: csApplied, // CS applied to debt from 3 months ago
       monthCSEntered, // CS actually entered in this month
+      osCumulative: osPool,
+      csCumulative: csPool,
       osDebt90d,
       osTotalAfterDebt,
     });
@@ -501,8 +500,10 @@ export const calculateMonthlySummary = (
   const osDebt90d = thisMonth ? thisMonth.osDebt90d : 0;
   // CS entered in the current month (actual input, not just applied to old debt)
   const csEntered = thisMonth ? thisMonth.monthCSEntered : 0;
-  // OS Total is the chained value after all debt/CS logic
-  const osTotal = thisMonth ? thisMonth.osTotalAfterDebt : 0;
+  const osCumulativeTotal = thisMonth ? thisMonth.osCumulative : 0;
+  const csCumulativeTotal = thisMonth ? thisMonth.csCumulative : 0;
+  // OS Total should show the balance after all CS entered
+  const osTotal = osCumulativeTotal - csCumulativeTotal;
   const csBalance = osTotal;
 
   return {
@@ -512,7 +513,7 @@ export const calculateMonthlySummary = (
     workDays,
     offDays: 0,
     csMonth: roundToNearestMinute(csEntered),
-    csTotal: roundToNearestMinute(csEntered),
+    csTotal: roundToNearestMinute(csCumulativeTotal),
     osMonth: roundToNearestMinute(osMonth),
     osTotal: roundToNearestMinute(osTotal),
     csBalance: roundToNearestMinute(csBalance),

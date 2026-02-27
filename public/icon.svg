@@ -1,0 +1,35 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Calendar Background -->
+  <rect x="64" y="96" width="384" height="352" rx="32" fill="#4A90E2" stroke="#2E5C8A" stroke-width="8"/>
+  
+  <!-- Calendar Header -->
+  <rect x="64" y="96" width="384" height="80" rx="32" fill="#2E5C8A"/>
+  <rect x="64" y="144" width="384" height="32" fill="#2E5C8A"/>
+  
+  <!-- Binding Rings -->
+  <circle cx="144" cy="88" r="16" fill="#2E5C8A"/>
+  <circle cx="256" cy="88" r="16" fill="#2E5C8A"/>
+  <circle cx="368" cy="88" r="16" fill="#2E5C8A"/>
+  
+  <!-- Calendar Grid -->
+  <!-- Horizontal lines -->
+  <line x1="80" y1="224" x2="432" y2="224" stroke="#FFFFFF" stroke-width="3" opacity="0.5"/>
+  <line x1="80" y1="288" x2="432" y2="288" stroke="#FFFFFF" stroke-width="3" opacity="0.5"/>
+  <line x1="80" y1="352" x2="432" y2="352" stroke="#FFFFFF" stroke-width="3" opacity="0.5"/>
+  
+  <!-- Vertical lines -->
+  <line x1="144" y1="176" x2="144" y2="420" stroke="#FFFFFF" stroke-width="3" opacity="0.5"/>
+  <line x1="208" y1="176" x2="208" y2="420" stroke="#FFFFFF" stroke-width="3" opacity="0.5"/>
+  <line x1="272" y1="176" x2="272" y2="420" stroke="#FFFFFF" stroke-width="3" opacity="0.5"/>
+  <line x1="336" y1="176" x2="336" y2="420" stroke="#FFFFFF" stroke-width="3" opacity="0.5"/>
+  <line x1="400" y1="176" x2="400" y2="420" stroke="#FFFFFF" stroke-width="3" opacity="0.5"/>
+  
+  <!-- Clock/Time Symbol -->
+  <circle cx="256" cy="320" r="56" fill="#FFFFFF" opacity="0.95"/>
+  <circle cx="256" cy="320" r="48" fill="#4A90E2" stroke="#2E5C8A" stroke-width="4"/>
+  
+  <!-- Clock hands -->
+  <line x1="256" y1="320" x2="256" y2="290" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+  <line x1="256" y1="320" x2="276" y2="320" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="256" cy="320" r="6" fill="#FFFFFF"/>
+</svg>

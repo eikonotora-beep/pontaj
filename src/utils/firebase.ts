@@ -1,7 +1,5 @@
 // Firebase configuration and initialization
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { isPlatformElectron } from "./platform";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDig3wwQRpVzH8VPgCcqm_V2jUrZO9ADSY",
@@ -13,6 +11,20 @@ const firebaseConfig = {
   measurementId: "G-N3RP5WW8QH"
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Only initialize Firebase in web mode, not in Electron
+let app: any = null;
+let auth: any = null;
+let db: any = null;
+
+if (!isPlatformElectron()) {
+  // Only import Firebase if not in Electron
+  const { initializeApp } = require("firebase/app");
+  const { getAuth } = require("firebase/auth");
+  const { getFirestore } = require("firebase/firestore");
+  
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+}
+
+export { auth, db };

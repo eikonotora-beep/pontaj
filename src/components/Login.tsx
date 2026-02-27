@@ -1,26 +1,32 @@
-import React, { useState } from "react";
-import { auth } from "../utils/firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import React, { useState, useEffect } from "react";
+import { loginUser, registerUser, logoutUser, getAuthPlatform } from "../utils/authAdapter";
+import { isPlatformElectron } from "../utils/platform";
 
 const Login: React.FC<{ onAuthChange: (user: any) => void }> = ({ onAuthChange }) => {
-  const [email, setEmail] = useState("");
+  const [inputValue, setInputValue] = useState("");
   const [password, setPassword] = useState("");
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isElectron, setIsElectron] = useState(false);
+
+  useEffect(() => {
+    setIsElectron(isPlatformElectron());
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      let userCredential;
       if (isRegister) {
-        userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await registerUser(inputValue, password);
+        const loginResult = await loginUser(inputValue, password);
+        onAuthChange(loginResult);
       } else {
-        userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = await loginUser(inputValue, password);
+        onAuthChange(user);
       }
-      onAuthChange(userCredential.user);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -29,8 +35,12 @@ const Login: React.FC<{ onAuthChange: (user: any) => void }> = ({ onAuthChange }
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
-    onAuthChange(null);
+    try {
+      await logoutUser();
+      onAuthChange(null);
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -50,10 +60,10 @@ const Login: React.FC<{ onAuthChange: (user: any) => void }> = ({ onAuthChange }
       <h3 style={{ textAlign: 'center', marginBottom: 14, fontWeight: 700, letterSpacing: 1, fontSize: 18 }}>⏰ {isRegister ? "Register" : "Login"}</h3>
       <form onSubmit={handleSubmit}>
         <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
+          type={isElectron ? "text" : "email"}
+          placeholder={isElectron ? "Username" : "Email"}
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
           required
           style={{
             width: "100%",

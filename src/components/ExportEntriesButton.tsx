@@ -97,10 +97,10 @@ const ExportEntriesButton: React.FC = () => {
     }
     function calcDayWeekend(entry: DayEntry, idx: number, entries: DayEntry[]): number {
       // Use the same robust logic as storage.ts, but always use the real next calendar day
-      const { isWeekend, isRomanianHoliday } = require("../utils/dateUtils");
+      const { isWeekend, isRomanianHoliday, timeToMinutes } = require("../utils/dateUtils");
       const entryDate = new Date(entry.date);
       let total = 0;
-      entry.shifts.forEach((shift: { type: ShiftType; duration: number }) => {
+      entry.shifts.forEach((shift: any) => {
         if (shift.type === "night") {
           // Always use the next calendar day, not the next entry in the filtered list
           const nextDate = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate() + 1);
@@ -111,12 +111,15 @@ const ExportEntriesButton: React.FC = () => {
           // Rule 1: Night on weekend/holiday, next day also weekend/holiday: count actual hours
           if ((isCurrentHoliday || isCurrentWeekend) && (isNextHoliday || isNextWeekend)) {
             total += shift.duration;
-          // Rule 2: Night on weekend/holiday, next day NOT weekend/holiday: count 5:15
+          // Rule 2: Night on weekend/holiday, next day NOT weekend/holiday: count hours till 00:00
           } else if ((isCurrentHoliday || isCurrentWeekend) && !(isNextHoliday || isNextWeekend)) {
-            total += 5 * 60 + 15;
-          // Rule 3: Night NOT on weekend/holiday, next day IS weekend/holiday: count 7:15
+            const startMinutes = timeToMinutes(shift.startTime);
+            const hoursTillMidnight = 24 * 60 - startMinutes;
+            total += hoursTillMidnight;
+          // Rule 3: Night NOT on weekend/holiday, next day IS weekend/holiday: count hours after 00:00
           } else if (!(isCurrentHoliday || isCurrentWeekend) && (isNextHoliday || isNextWeekend)) {
-            total += 7 * 60 + 15;
+            const endMinutes = timeToMinutes(shift.endTime);
+            total += endMinutes;
           }
           // Otherwise, do not count night shift towards weekend hours
         }

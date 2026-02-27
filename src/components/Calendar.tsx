@@ -219,7 +219,7 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
             <div className="summary-item">
               <label>CS:</label>
               <span className="summary-value">
-                {Math.floor(summary.csTotal / 60)}h {summary.csTotal % 60}m
+                {Math.floor(summary.csMonth / 60)}h {summary.csMonth % 60}m
               </span>
             </div>
             <div className="summary-item">
