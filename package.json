@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Cross-platform calendar app for tracking work hours with mobile and desktop support",
   "main": "public/electron.js",
-  "homepage": ".",
+  "homepage": "/pontaj/",
   "author": "",
   "license": "MIT",
   "scripts": {

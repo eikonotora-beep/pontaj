@@ -1,8 +1,21 @@
 import { db } from "./firebase";
-import { collection, doc, getDoc, setDoc } from "firebase/firestore";
 import { Profile } from "../types";
 import { ACTIVE_PROFILE_KEY, ACTIVE_CALENDAR_KEY } from "./storage";
+import { isPlatformElectron } from "./platform";
 
+// Conditionally import Firestore functions
+let collection: any = null;
+let doc: any = null;
+let getDoc: any = null;
+let setDoc: any = null;
+
+if (!isPlatformElectron()) {
+  const firestore = require("firebase/firestore");
+  collection = firestore.collection;
+  doc = firestore.doc;
+  getDoc = firestore.getDoc;
+  setDoc = firestore.setDoc;
+}
 
 // Save all user data (profiles, calendars, entries, active selections) to Firestore under the user's UID
 export async function saveUserDataToCloud(
@@ -11,7 +24,10 @@ export async function saveUserDataToCloud(
   activeProfileId?: string | null,
   activeCalendarId?: string | null
 ) {
-  const userDoc = doc(collection(db, "users"), uid);
+  if (!db || !collection || !doc || !setDoc) {
+    throw new Error("Cloud sync not available");
+  }
+  const userDoc = doc(db, "users", uid);
   await setDoc(userDoc, {
     profiles,
     activeProfileId: activeProfileId ?? localStorage.getItem(ACTIVE_PROFILE_KEY),
@@ -25,7 +41,10 @@ export async function loadUserDataFromCloud(uid: string): Promise<{
   activeProfileId?: string;
   activeCalendarId?: string;
 } | null> {
-  const userDoc = doc(collection(db, "users"), uid);
+  if (!db || !collection || !doc || !getDoc) {
+    throw new Error("Cloud sync not available");
+  }
+  const userDoc = doc(db, "users", uid);
   const snap = await getDoc(userDoc);
   if (snap.exists()) {
     const data = snap.data();

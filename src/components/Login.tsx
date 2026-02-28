@@ -23,12 +23,14 @@ const Login: React.FC<{ onAuthChange: (user: any) => void }> = ({ onAuthChange }
         await registerUser(inputValue, password);
         const loginResult = await loginUser(inputValue, password);
         onAuthChange(loginResult);
+        setError(""); // Clear any previous errors
       } else {
         const user = await loginUser(inputValue, password);
         onAuthChange(user);
+        setError(""); // Clear any previous errors
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Authentication failed");
     } finally {
       setLoading(false);
     }
@@ -109,7 +111,10 @@ const Login: React.FC<{ onAuthChange: (user: any) => void }> = ({ onAuthChange }
           {loading ? "Please wait..." : isRegister ? "Register" : "Login"}
         </button>
       </form>
-      <button onClick={() => setIsRegister(r => !r)} style={{
+      <button onClick={() => {
+        setIsRegister(r => !r);
+        setError(""); // Clear errors when switching modes
+      }} style={{
         width: "100%",
         marginBottom: 8,
         padding: "8px 0",
@@ -124,7 +129,21 @@ const Login: React.FC<{ onAuthChange: (user: any) => void }> = ({ onAuthChange }
       }}>
         {isRegister ? "Already have an account? Login" : "No account? Register"}
       </button>
-      {error && <div style={{ color: "#ffb3b3", marginBottom: 8, textAlign: 'center', fontWeight: 600, fontSize: 14 }}>{error}</div>}
+      {error && (
+        <div style={{ 
+          color: "#ffb3b3", 
+          marginBottom: 8, 
+          textAlign: 'center', 
+          fontWeight: 600, 
+          fontSize: 12,
+          padding: 6,
+          background: "rgba(255,255,255,0.1)",
+          borderRadius: 5,
+          wordWrap: "break-word"
+        }}>
+          {error}
+        </div>
+      )}
       <button onClick={handleLogout} style={{
         width: "100%",
         marginTop: 2,
