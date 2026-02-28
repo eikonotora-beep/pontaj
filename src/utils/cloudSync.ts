@@ -4,14 +4,12 @@ import { ACTIVE_PROFILE_KEY, ACTIVE_CALENDAR_KEY } from "./storage";
 import { isPlatformElectron } from "./platform";
 
 // Conditionally import Firestore functions
-let collection: any = null;
 let doc: any = null;
 let getDoc: any = null;
 let setDoc: any = null;
 
 if (!isPlatformElectron()) {
   const firestore = require("firebase/firestore");
-  collection = firestore.collection;
   doc = firestore.doc;
   getDoc = firestore.getDoc;
   setDoc = firestore.setDoc;
@@ -24,7 +22,7 @@ export async function saveUserDataToCloud(
   activeProfileId?: string | null,
   activeCalendarId?: string | null
 ) {
-  if (!db || !collection || !doc || !setDoc) {
+  if (!db || !doc || !setDoc) {
     throw new Error("Cloud sync not available");
   }
   const userDoc = doc(db, "users", uid);
@@ -41,7 +39,7 @@ export async function loadUserDataFromCloud(uid: string): Promise<{
   activeProfileId?: string;
   activeCalendarId?: string;
 } | null> {
-  if (!db || !collection || !doc || !getDoc) {
+  if (!db || !doc || !getDoc) {
     throw new Error("Cloud sync not available");
   }
   const userDoc = doc(db, "users", uid);
