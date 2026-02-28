@@ -1,5 +1,8 @@
 const { contextBridge, ipcMain } = require("electron");
 
+// Expose flag that we're running in Electron
+contextBridge.exposeInMainWorld("__ELECTRON__", true);
+
 contextBridge.exposeInMainWorld("electron", {
   ipcRenderer: {
     send: (channel, data) => {
