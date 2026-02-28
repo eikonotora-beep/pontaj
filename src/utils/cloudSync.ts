@@ -23,14 +23,20 @@ export async function saveUserDataToCloud(
   activeCalendarId?: string | null
 ) {
   if (!db || !doc || !setDoc) {
+    console.warn("Cloud sync not available - Firebase not initialized");
     throw new Error("Cloud sync not available");
   }
-  const userDoc = doc(db, "users", uid);
-  await setDoc(userDoc, {
-    profiles,
-    activeProfileId: activeProfileId ?? localStorage.getItem(ACTIVE_PROFILE_KEY),
-    activeCalendarId: activeCalendarId ?? localStorage.getItem(ACTIVE_CALENDAR_KEY),
-  });
+  try {
+    const userDoc = doc(db, "users", uid);
+    await setDoc(userDoc, {
+      profiles,
+      activeProfileId: activeProfileId ?? localStorage.getItem(ACTIVE_PROFILE_KEY),
+      activeCalendarId: activeCalendarId ?? localStorage.getItem(ACTIVE_CALENDAR_KEY),
+    });
+  } catch (error: any) {
+    console.error("Firebase save error:", error.message, error.code);
+    throw new Error(`Cloud sync failed: ${error.message || "Unknown error"}`);
+  }
 }
 
 // Load all user data from Firestore for the given UID
@@ -40,17 +46,23 @@ export async function loadUserDataFromCloud(uid: string): Promise<{
   activeCalendarId?: string;
 } | null> {
   if (!db || !doc || !getDoc) {
+    console.warn("Cloud sync not available - Firebase not initialized");
     throw new Error("Cloud sync not available");
   }
-  const userDoc = doc(db, "users", uid);
-  const snap = await getDoc(userDoc);
-  if (snap.exists()) {
-    const data = snap.data();
-    return {
-      profiles: data.profiles || [],
-      activeProfileId: data.activeProfileId,
-      activeCalendarId: data.activeCalendarId,
-    };
+  try {
+    const userDoc = doc(db, "users", uid);
+    const snap = await getDoc(userDoc);
+    if (snap.exists()) {
+      const data = snap.data();
+      return {
+        profiles: data.profiles || [],
+        activeProfileId: data.activeProfileId,
+        activeCalendarId: data.activeCalendarId,
+      };
+    }
+    return null;
+  } catch (error: any) {
+    console.error("Firebase load error:", error.message, error.code);
+    throw new Error(`Cloud sync failed: ${error.message || "Unknown error"}`);
   }
-  return null;
 }
