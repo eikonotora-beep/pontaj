@@ -66,7 +66,9 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
   };
 
   const getFirstDayOfMonth = (year: number, month: number) => {
-    return new Date(year, month, 1).getDay();
+    // Convert from Sunday=0 to Monday=0 (European format)
+    const day = new Date(year, month, 1).getDay();
+    return day === 0 ? 6 : day - 1;
   };
 
   const handlePrevMonth = () => {
@@ -169,7 +171,7 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
       </div>
 
       <div className="weekdays">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
           <div key={day} className="weekday">
             {day}
           </div>
