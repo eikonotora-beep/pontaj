@@ -164,7 +164,7 @@ function App() {
           </div>
         )}
 
-        {(activeSection === "settings" || window.innerWidth >= 700) && (
+        {(activeSection === "settings" || activeSection === "calendar" || window.innerWidth >= 700) && (
           <aside className="app-sidebar" style={{ minWidth: 220, marginLeft: window.innerWidth < 700 ? 0 : 24 }}>
             <HolidayManager year={new Date().getFullYear()} />
             <div style={{ marginTop: 16 }}>
