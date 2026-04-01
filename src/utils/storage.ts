@@ -513,9 +513,9 @@ export const calculateMonthlySummary = (
   const csEntered = thisMonth ? thisMonth.monthCSEntered : 0;
   const osCumulativeTotal = thisMonth ? thisMonth.osCumulative : 0;
   const csCumulativeTotal = thisMonth ? thisMonth.csCumulative : 0;
-  // OS Total should show the balance after all CS entered, minus the overdue debt that is shown in red
-  const osTotal = osCumulativeTotal - csCumulativeTotal - osDebt90d;
-  const csBalance = osTotal;
+  // OS Total should show the cumulative OS generated (including CS-driven work), then separate balance can account for CS/debt mechanics
+  const osTotal = osCumulativeTotal;
+  const csBalance = osTotal - csCumulativeTotal - osDebt90d;
 
   return {
     totalFTL: roundToNearestMinute(totalFTL),
