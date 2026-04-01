@@ -121,8 +121,9 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
       );
     });
 
-    // determine shift label to show: CS > CO > CM > INV > day > night
+    // determine shift label to show: CS > CO > CM > INV > day > night > neither
     let shiftLabel: string | null = null;
+    let shiftClass: string = "shift-indicator";
     if (entry && entry.shifts && entry.shifts.length > 0) {
       const types = entry.shifts.map((s) => s.type);
       if (types.includes("cs")) shiftLabel = "CS";
@@ -131,6 +132,10 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
       else if (types.includes("inv")) shiftLabel = "INV";
       else if (types.includes("day")) shiftLabel = "D";
       else if (types.includes("night")) shiftLabel = "N";
+      else if (types.includes("neither")) {
+        shiftLabel = "A";
+        shiftClass = "shift-indicator neither-shift";
+      }
     }
 
     days.push(
@@ -144,7 +149,7 @@ const Calendar: React.FC<CalendarProps> = ({ onDayClick, selectedDate }) => {
           <span className="holiday-indicator">●</span>
         )}
         {shiftLabel && (
-          <span className="shift-indicator">{shiftLabel}</span>
+          <span className={shiftClass}>{shiftLabel}</span>
         )}
       </div>
     );

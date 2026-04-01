@@ -160,6 +160,11 @@
   letter-spacing: 0.3px;
 }
 
+.neither-shift {
+  background: rgba(255, 255, 0, 0.8) !important;
+  color: #333;
+}
+
 .calendar-empty {
   background: transparent;
   border: none;
