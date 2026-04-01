@@ -429,7 +429,15 @@ export const calculateMonthlySummary = (
     );
     csPool += monthCSEntered;
 
-    // Apply CS to oldest unpaid debts first (chronologically)
+    // Determine the 90-day overdue debt month/year for this period
+    let overdueDebtMonth = m - 4;
+    let overdueDebtYear = y;
+    while (overdueDebtMonth < 0) {
+      overdueDebtMonth += 12;
+      overdueDebtYear -= 1;
+    }
+
+    // Apply CS to oldest unpaid debts first (chronologically), but do NOT apply to the current overdue debt
     let csToApply = monthCSEntered;
     let csApplied = 0;
     
@@ -443,6 +451,9 @@ export const calculateMonthlySummary = (
     for (const debt of sortedDebts) {
       if (csToApply <= 0) break;
       if (debt.amount > 0) {
+        if (debt.year === overdueDebtYear && debt.month === overdueDebtMonth) {
+          continue;
+        }
         const applied = Math.min(csToApply, debt.amount);
         debt.amount -= applied;
         csToApply -= applied;
@@ -502,8 +513,8 @@ export const calculateMonthlySummary = (
   const csEntered = thisMonth ? thisMonth.monthCSEntered : 0;
   const osCumulativeTotal = thisMonth ? thisMonth.osCumulative : 0;
   const csCumulativeTotal = thisMonth ? thisMonth.csCumulative : 0;
-  // OS Total should show the balance after all CS entered
-  const osTotal = osCumulativeTotal - csCumulativeTotal;
+  // OS Total should show the balance after all CS entered, minus the overdue debt that is shown in red
+  const osTotal = osCumulativeTotal - csCumulativeTotal - osDebt90d;
   const csBalance = osTotal;
 
   return {
